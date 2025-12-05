@@ -45,6 +45,11 @@ public partial class App : System.Windows.Application
             config.RegionHotkey.Modifiers,
             config.RegionHotkey.Key,
             () => CaptureRegion());
+
+        _hotkeyService?.RegisterHotkey("GifRecord",
+            config.GifHotkey.Modifiers,
+            config.GifHotkey.Key,
+            () => CaptureGif());
     }
 
     public static void CaptureFullScreen()
@@ -105,6 +110,24 @@ public partial class App : System.Windows.Application
             {
                 OpenEditor(overlay.CapturedImage);
             }
+        }
+        finally
+        {
+            _isCapturing = false;
+        }
+    }
+
+    public static void CaptureGif()
+    {
+        if (_isCapturing) return;
+        _isCapturing = true;
+
+        try
+        {
+            HideEditorAndWait();
+
+            var overlay = new Views.GifRecordingOverlay();
+            overlay.ShowDialog();
         }
         finally
         {

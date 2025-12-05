@@ -14,6 +14,7 @@
 - **전체 화면 캡쳐** - `PrintScreen`
 - **활성 창 캡쳐** - `Alt + PrintScreen`
 - **영역 선택 캡쳐** - `Ctrl + Shift + C`
+- **GIF 녹화** - `Ctrl + Shift + G` (30fps)
 - 다중 모니터 지원
 - 커서 포함 옵션
 
@@ -79,6 +80,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 | 전체 화면 캡쳐 | `PrintScreen` |
 | 활성 창 캡쳐 | `Alt + PrintScreen` |
 | 영역 선택 캡쳐 | `Ctrl + Shift + C` |
+| GIF 녹화 | `Ctrl + Shift + G` |
 
 ### 편집기 - 파일/편집
 | 동작 | 단축키 |
@@ -120,6 +122,7 @@ WinCapture/
 │   ├── Services/
 │   │   ├── ScreenCaptureService.cs # 화면 캡쳐 로직
 │   │   ├── CaptureHistoryService.cs # 캡쳐 히스토리 관리
+│   │   ├── GifRecorderService.cs # GIF 녹화 서비스
 │   │   ├── HotkeyService.cs  # 글로벌 단축키
 │   │   ├── LocalizationService.cs # 다국어 지원
 │   │   └── TrayIconService.cs # 시스템 트레이
@@ -141,7 +144,23 @@ WinCapture/
 - .NET 9 / C# 13
 - WPF (Windows Presentation Foundation)
 - CommunityToolkit.Mvvm (MVVM 패턴)
+- AnimatedGif (GIF 녹화)
 - Windows 11 DWM API (라운드 코너, Mica 효과)
+
+## 보안
+
+### VirusTotal 검증
+- [최신 검증 결과](https://www.virustotal.com/gui/file/d475941779a624d962c46dd35f3d490b04b81f74b595955bbde2db8c6634442b/detection)
+- 1/71 탐지 (Bkav Pro AI 오탐 - Self-contained .NET 앱 특성)
+- 소스코드 100% 공개 - 직접 빌드 가능
+
+### 왜 일부 백신에서 오탐이 발생하나요?
+Self-contained .NET 앱은 다음 특성으로 인해 AI 기반 백신에서 오탐될 수 있습니다:
+- 대용량 단일 실행파일 (런타임 포함)
+- 화면 캡쳐, 글로벌 핫키 등 시스템 API 사용
+- 클립보드 접근
+
+이는 악성코드와 무관하며, 70개 이상의 주요 백신에서 정상 판정을 받았습니다.
 
 ## 기여하기
 

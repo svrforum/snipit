@@ -44,6 +44,7 @@
   <!-- Package References -->
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="AnimatedGif" Version="1.0.5" />
   </ItemGroup>
 
   <!-- Include icon as resource -->

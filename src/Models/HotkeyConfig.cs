@@ -87,6 +87,7 @@ public sealed class AppSettingsConfig
     public HotkeyConfig FullScreenHotkey { get; set; } = new(ModifierKeys.None, System.Windows.Forms.Keys.PrintScreen);
     public HotkeyConfig ActiveWindowHotkey { get; set; } = new(ModifierKeys.Alt, System.Windows.Forms.Keys.PrintScreen);
     public HotkeyConfig RegionHotkey { get; set; } = new(ModifierKeys.Control | ModifierKeys.Shift, System.Windows.Forms.Keys.C);
+    public HotkeyConfig GifHotkey { get; set; } = new(ModifierKeys.Control | ModifierKeys.Shift, System.Windows.Forms.Keys.G);
 
     // Static configuration path
     private static readonly string ConfigPath = Path.Combine(

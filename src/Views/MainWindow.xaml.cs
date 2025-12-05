@@ -47,6 +47,12 @@ public partial class MainWindow : Window
         App.CaptureRegion();
     }
 
+    private void BtnGifRecord_Click(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        App.CaptureGif();
+    }
+
     private void BtnSettings_Click(object sender, RoutedEventArgs e)
     {
         var settingsWindow = new SettingsWindow();
