@@ -172,6 +172,10 @@ public partial class EditorWindow : Window
                     SelectTool("Blur");
                     e.Handled = true;
                     break;
+                case Key.C:
+                    SelectTool("Crop");
+                    e.Handled = true;
+                    break;
                 case Key.Escape:
                     // Cancel current operation or deselect tool
                     SelectTool("Select");
@@ -225,6 +229,7 @@ public partial class EditorWindow : Window
             "Text" => "텍스트 (T)",
             "Highlight" => "형광펜 (H)",
             "Blur" => "모자이크 (M)",
+            "Crop" => "자르기 (C)",
             _ => toolName
         };
     }
@@ -463,6 +468,11 @@ public partial class EditorWindow : Window
                 ApplyBlurEffect(blurRect);
                 DrawingCanvas.Children.Remove(blurRect);
             }
+            else if (_currentTool == "Crop" && _currentShape is Rectangle cropRect)
+            {
+                ApplyCropEffect(cropRect);
+                DrawingCanvas.Children.Remove(cropRect);
+            }
             else if (_currentShape != null && _currentTool != "Select")
             {
                 // Save state and merge drawing to bitmap for undo/redo support
@@ -552,6 +562,14 @@ public partial class EditorWindow : Window
                 StrokeThickness = 1,
                 StrokeDashArray = new DoubleCollection { 4, 2 },
                 Fill = new SolidColorBrush(Color.FromArgb(30, 0, 0, 255))
+            },
+            "Crop" => new Rectangle
+            {
+                Stroke = new SolidColorBrush(Colors.Blue),
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 4, 2 },
+                Fill = new SolidColorBrush(Color.FromArgb(30, 0, 0, 255)),
+                Tag = "CropRect"
             },
             _ => null
         };
@@ -865,66 +883,48 @@ public partial class EditorWindow : Window
     #region Crop
     private void BtnCrop_Click(object sender, RoutedEventArgs e)
     {
-        StatusText.Text = "Select area to crop, then press Enter";
-        _currentTool = "Crop";
-
-        // Create crop selection overlay
-        var cropRect = new Rectangle
-        {
-            Stroke = new SolidColorBrush(Colors.Blue),
-            StrokeThickness = 2,
-            StrokeDashArray = new DoubleCollection { 4, 2 },
-            Fill = new SolidColorBrush(Color.FromArgb(30, 0, 0, 255)),
-            Tag = "CropRect"
-        };
-
-        DrawingCanvas.Children.Add(cropRect);
-        _currentShape = cropRect;
-
-        DrawingCanvas.MouseLeftButtonUp += CropCanvas_MouseLeftButtonUp;
+        SelectTool("Crop");
+        StatusText.Text = "드래그하여 자를 영역을 선택하세요";
     }
 
-    private void CropCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    private void ApplyCropEffect(Rectangle cropRect)
     {
-        DrawingCanvas.MouseLeftButtonUp -= CropCanvas_MouseLeftButtonUp;
+        int x = (int)Canvas.GetLeft(cropRect);
+        int y = (int)Canvas.GetTop(cropRect);
+        int width = (int)cropRect.Width;
+        int height = (int)cropRect.Height;
 
-        if (_currentShape is Rectangle cropRect && cropRect.Tag?.ToString() == "CropRect")
+        if (width > 5 && height > 5)
         {
-            int x = (int)Canvas.GetLeft(cropRect);
-            int y = (int)Canvas.GetTop(cropRect);
-            int width = (int)cropRect.Width;
-            int height = (int)cropRect.Height;
+            SaveState();
 
-            if (width > 5 && height > 5)
-            {
-                SaveState();
+            x = Math.Max(0, x);
+            y = Math.Max(0, y);
+            width = Math.Min(width, _originalBitmap.Width - x);
+            height = Math.Min(height, _originalBitmap.Height - y);
 
-                x = Math.Max(0, x);
-                y = Math.Max(0, y);
-                width = Math.Min(width, _originalBitmap.Width - x);
-                height = Math.Min(height, _originalBitmap.Height - y);
+            if (width <= 0 || height <= 0) return;
 
-                var cropRegion = new System.Drawing.Rectangle(x, y, width, height);
-                var croppedBitmap = _originalBitmap.Clone(cropRegion, _originalBitmap.PixelFormat);
+            var cropRegion = new System.Drawing.Rectangle(x, y, width, height);
+            var croppedBitmap = _originalBitmap.Clone(cropRegion, _originalBitmap.PixelFormat);
 
-                _originalBitmap.Dispose();
-                _originalBitmap = croppedBitmap;
+            _originalBitmap.Dispose();
+            _originalBitmap = croppedBitmap;
 
-                DrawingCanvas.Children.Clear();
-                LoadImage(_originalBitmap);
-                UpdateImageSizeText();
+            DrawingCanvas.Children.Clear();
+            LoadImage(_originalBitmap);
+            UpdateImageSizeText();
+            CopyToClipboard();
 
-                StatusText.Text = "Image cropped";
-            }
-            else
-            {
-                DrawingCanvas.Children.Remove(cropRect);
-                StatusText.Text = "Crop cancelled - selection too small";
-            }
+            StatusText.Text = "이미지가 잘렸습니다";
+        }
+        else
+        {
+            StatusText.Text = "선택 영역이 너무 작습니다";
         }
 
-        _currentTool = "Select";
-        BtnSelect.IsChecked = true;
+        // Return to Select tool after crop
+        SelectTool("Select");
     }
     #endregion
 
