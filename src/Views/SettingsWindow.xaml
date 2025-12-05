@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:SnipIt.Controls"
         Title="설정"
-        Width="480" Height="620"
+        Width="480" Height="720"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{StaticResource BackgroundBrush}"
@@ -80,6 +80,28 @@
                     </StackPanel>
                 </Border>
 
+                <!-- GIF Settings -->
+                <TextBlock Text="GIF 녹화" FontWeight="SemiBold" FontSize="13"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,12"/>
+
+                <Border Background="{StaticResource CardBrush}" CornerRadius="16"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        Padding="20" Margin="0,0,0,20">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="프레임 레이트 (FPS)" FontSize="14" VerticalAlignment="Center" Width="140"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <ComboBox x:Name="CmbGifFps" Width="100" Padding="12,10">
+                                <ComboBoxItem Content="15 fps" Tag="15"/>
+                                <ComboBoxItem Content="30 fps" Tag="30" IsSelected="True"/>
+                                <ComboBoxItem Content="60 fps" Tag="60"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <TextBlock Text="높은 FPS는 더 부드러운 GIF를 만들지만 파일 크기가 커집니다."
+                                   Foreground="{StaticResource TextTertiaryBrush}" FontSize="11" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Hotkeys -->
                 <TextBlock Text="단축키" FontWeight="SemiBold" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,12"/>
@@ -100,6 +122,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="전체 화면" FontSize="14" VerticalAlignment="Center"
@@ -117,6 +140,12 @@
                             <TextBlock Grid.Row="2" Text="영역 선택" FontSize="14" VerticalAlignment="Center"
                                        Foreground="{StaticResource TextPrimaryBrush}" Margin="0,12,0,0"/>
                             <controls:HotkeyTextBox x:Name="HotkeyRegion" Grid.Row="2" Grid.Column="1"
+                                                    Style="{StaticResource TossTextBoxStyle}"
+                                                    Padding="12,10" Margin="0,12,0,0" Cursor="Hand"/>
+
+                            <TextBlock Grid.Row="3" Text="GIF 녹화" FontSize="14" VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,12,0,0"/>
+                            <controls:HotkeyTextBox x:Name="HotkeyGif" Grid.Row="3" Grid.Column="1"
                                                     Style="{StaticResource TossTextBoxStyle}"
                                                     Padding="12,10" Margin="0,12,0,0" Cursor="Hand"/>
                         </Grid>

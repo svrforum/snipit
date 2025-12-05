@@ -130,7 +130,7 @@
                     <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="GIF 녹화" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <TextBlock Text="선택 영역을 GIF로 녹화합니다 (30fps)" FontSize="12" Margin="0,2,0,0"
+                        <TextBlock Text="선택 영역을 GIF로 녹화합니다" FontSize="12" Margin="0,2,0,0"
                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                     </StackPanel>
 

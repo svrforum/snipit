@@ -16,9 +16,9 @@ public sealed class GifRecorderService : IDisposable
     private bool _isRecording;
     private DateTime _recordingStartTime;
 
-    // 30fps = 33.33ms per frame
-    private const int TargetFps = 30;
-    private const int FrameDelayMs = 1000 / TargetFps; // ~33ms
+    // Configurable FPS (15, 30, or 60)
+    private readonly int _targetFps;
+    private readonly int _frameDelayMs;
 
     public event Action<TimeSpan>? RecordingProgress;
     public event Action<string>? RecordingCompleted;
@@ -26,13 +26,22 @@ public sealed class GifRecorderService : IDisposable
 
     public bool IsRecording => _isRecording;
     public int FrameCount => _frames.Count;
+    public int TargetFps => _targetFps;
     public TimeSpan RecordingDuration => _isRecording
         ? DateTime.Now - _recordingStartTime
         : TimeSpan.Zero;
 
-    public GifRecorderService()
+    public GifRecorderService(int fps = 30)
     {
-        _captureTimer = new System.Timers.Timer(FrameDelayMs);
+        _targetFps = fps switch
+        {
+            15 => 15,
+            60 => 60,
+            _ => 30
+        };
+        _frameDelayMs = 1000 / _targetFps;
+
+        _captureTimer = new System.Timers.Timer(_frameDelayMs);
         _captureTimer.Elapsed += CaptureTimer_Elapsed;
         _captureTimer.AutoReset = true;
     }
@@ -158,7 +167,7 @@ public sealed class GifRecorderService : IDisposable
             }
 
             // Create animated GIF
-            using (var gif = AnimatedGif.AnimatedGif.Create(finalPath, FrameDelayMs))
+            using (var gif = AnimatedGif.AnimatedGif.Create(finalPath, _frameDelayMs))
             {
                 lock (_frames)
                 {

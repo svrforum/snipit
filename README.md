@@ -14,7 +14,7 @@
 - **전체 화면 캡쳐** - `PrintScreen`
 - **활성 창 캡쳐** - `Alt + PrintScreen`
 - **영역 선택 캡쳐** - `Ctrl + Shift + C`
-- **GIF 녹화** - `Ctrl + Shift + G` (30fps)
+- **GIF 녹화** - `Ctrl + Shift + G` (15/30/60fps 설정 가능)
 - 다중 모니터 지원
 - 커서 포함 옵션
 

@@ -9,6 +9,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using SnipIt.Models;
 using SnipIt.Services;
 using Rectangle = System.Windows.Shapes.Rectangle;
 
@@ -281,7 +282,9 @@ public partial class GifRecordingOverlay : Window
             (int)_selectedRegion.Width,
             (int)_selectedRegion.Height);
 
-        _recorder = new GifRecorderService();
+        // Get FPS from settings
+        var fps = AppSettingsConfig.Instance.GifFps;
+        _recorder = new GifRecorderService(fps);
         _recorder.RecordingProgress += OnRecordingProgress;
         _recorder.RecordingCompleted += OnRecordingCompleted;
         _recorder.RecordingError += OnRecordingError;
@@ -298,7 +301,7 @@ public partial class GifRecordingOverlay : Window
         if (_recorder != null)
         {
             var duration = _recorder.RecordingDuration;
-            RecordingTimeText.Text = $"REC {duration:mm\\:ss}";
+            RecordingTimeText.Text = $"REC {duration:mm\\:ss} ({_recorder.TargetFps}fps)";
         }
     }
 

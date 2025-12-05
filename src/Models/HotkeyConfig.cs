@@ -83,6 +83,9 @@ public sealed class AppSettingsConfig
     public string DefaultFormat { get; set; } = "png";
     public Language Language { get; set; } = Language.Korean;
 
+    // GIF settings
+    public int GifFps { get; set; } = 30; // 15, 30, or 60
+
     // Hotkey settings with collection expression
     public HotkeyConfig FullScreenHotkey { get; set; } = new(ModifierKeys.None, System.Windows.Forms.Keys.PrintScreen);
     public HotkeyConfig ActiveWindowHotkey { get; set; } = new(ModifierKeys.Alt, System.Windows.Forms.Keys.PrintScreen);

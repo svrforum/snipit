@@ -45,10 +45,19 @@ public partial class SettingsWindow : Window
             _ => 0 // PNG
         };
 
+        // GIF settings
+        CmbGifFps.SelectedIndex = _config.GifFps switch
+        {
+            15 => 0,
+            60 => 2,
+            _ => 1 // 30fps default
+        };
+
         // Hotkeys
         HotkeyFullScreen.HotkeyConfig = _config.FullScreenHotkey;
         HotkeyActiveWindow.HotkeyConfig = _config.ActiveWindowHotkey;
         HotkeyRegion.HotkeyConfig = _config.RegionHotkey;
+        HotkeyGif.HotkeyConfig = _config.GifHotkey;
     }
 
     private void BtnBrowse_Click(object sender, RoutedEventArgs e)
@@ -70,6 +79,7 @@ public partial class SettingsWindow : Window
         HotkeyFullScreen.HotkeyConfig = new HotkeyConfig(ModifierKeys.None, System.Windows.Forms.Keys.PrintScreen);
         HotkeyActiveWindow.HotkeyConfig = new HotkeyConfig(ModifierKeys.Alt, System.Windows.Forms.Keys.PrintScreen);
         HotkeyRegion.HotkeyConfig = new HotkeyConfig(ModifierKeys.Control | ModifierKeys.Shift, System.Windows.Forms.Keys.C);
+        HotkeyGif.HotkeyConfig = new HotkeyConfig(ModifierKeys.Control | ModifierKeys.Shift, System.Windows.Forms.Keys.G);
     }
 
     private void BtnReregisterHotkeys_Click(object sender, RoutedEventArgs e)
@@ -105,6 +115,15 @@ public partial class SettingsWindow : Window
             _ => "png"
         };
 
+        // GIF settings
+        var selectedFps = (CmbGifFps.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        _config.GifFps = selectedFps switch
+        {
+            "15" => 15,
+            "60" => 60,
+            _ => 30
+        };
+
         // Hotkeys
         if (HotkeyFullScreen.HotkeyConfig is not null)
             _config.FullScreenHotkey = HotkeyFullScreen.HotkeyConfig;
@@ -112,6 +131,8 @@ public partial class SettingsWindow : Window
             _config.ActiveWindowHotkey = HotkeyActiveWindow.HotkeyConfig;
         if (HotkeyRegion.HotkeyConfig is not null)
             _config.RegionHotkey = HotkeyRegion.HotkeyConfig;
+        if (HotkeyGif.HotkeyConfig is not null)
+            _config.GifHotkey = HotkeyGif.HotkeyConfig;
 
         // Save to file
         _config.Save();
@@ -134,6 +155,7 @@ public partial class SettingsWindow : Window
         hotkeyService.UnregisterHotkey("FullScreen");
         hotkeyService.UnregisterHotkey("ActiveWindow");
         hotkeyService.UnregisterHotkey("Region");
+        hotkeyService.UnregisterHotkey("GifRecord");
 
         // Register new hotkeys
         hotkeyService.RegisterHotkey("FullScreen",
@@ -150,6 +172,11 @@ public partial class SettingsWindow : Window
             _config.RegionHotkey.Modifiers,
             _config.RegionHotkey.Key,
             App.CaptureRegion);
+
+        hotkeyService.RegisterHotkey("GifRecord",
+            _config.GifHotkey.Modifiers,
+            _config.GifHotkey.Key,
+            App.CaptureGif);
     }
 
     private void BtnCancel_Click(object sender, RoutedEventArgs e)
