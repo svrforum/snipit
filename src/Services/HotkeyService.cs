@@ -11,6 +11,7 @@ public class HotkeyService : IDisposable
 
     private readonly Dictionary<int, Action> _hotkeyActions = new();
     private readonly Dictionary<string, int> _hotkeyNames = new();
+    private readonly Dictionary<string, (ModifierKeys modifiers, System.Windows.Forms.Keys key, Action callback)> _pendingHotkeys = new();
     private HwndSource? _hwndSource;
     private IntPtr _windowHandle;
     private int _currentId = 9000;
@@ -29,20 +30,15 @@ public class HotkeyService : IDisposable
         _isInitialized = true;
 
         // Re-register any pending hotkeys that were added before Initialize
-        var config = Models.AppSettingsConfig.Instance;
-
-        // Clear and re-register all hotkeys now that we have a window handle
-        var pendingActions = _hotkeyActions.ToDictionary(x => x.Key, x => x.Value);
-        var pendingNames = _hotkeyNames.ToDictionary(x => x.Key, x => x.Value);
-
-        _hotkeyActions.Clear();
-        _hotkeyNames.Clear();
-        _currentId = 9000;
-
-        // Re-register with actual Windows API
-        RegisterHotkey("FullScreen", config.FullScreenHotkey.Modifiers, config.FullScreenHotkey.Key, () => App.CaptureFullScreen());
-        RegisterHotkey("ActiveWindow", config.ActiveWindowHotkey.Modifiers, config.ActiveWindowHotkey.Key, () => App.CaptureActiveWindow());
-        RegisterHotkey("Region", config.RegionHotkey.Modifiers, config.RegionHotkey.Key, () => App.CaptureRegion());
+        if (_pendingHotkeys.Count > 0)
+        {
+            foreach (var kvp in _pendingHotkeys)
+            {
+                var (modifiers, key, callback) = kvp.Value;
+                RegisterHotkey(kvp.Key, modifiers, key, callback);
+            }
+            _pendingHotkeys.Clear();
+        }
     }
 
     public bool RegisterHotkey(string name, ModifierKeys modifiers, System.Windows.Forms.Keys key, Action callback)
@@ -52,19 +48,28 @@ public class HotkeyService : IDisposable
             UnregisterHotkey(name);
         }
 
+        // If not initialized yet, store for later registration
+        if (!_isInitialized)
+        {
+            _pendingHotkeys[name] = (modifiers, key, callback);
+            return true;
+        }
+
         int id = _currentId++;
         uint fsModifiers = ConvertModifiers(modifiers);
 
-        if (_isInitialized)
+        bool success = NativeMethods.RegisterHotKey(_windowHandle, id, fsModifiers | NativeMethods.MOD_NOREPEAT, (uint)key);
+
+        if (!success)
         {
-            if (!NativeMethods.RegisterHotKey(_windowHandle, id, fsModifiers | NativeMethods.MOD_NOREPEAT, (uint)key))
-            {
-                return false;
-            }
+            int errorCode = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+            System.Diagnostics.Debug.WriteLine($"[HotkeyService] Failed to register hotkey '{name}' (Key: {key}, Modifiers: {modifiers}). Error code: {errorCode}");
+            return false;
         }
 
         _hotkeyActions[id] = callback;
         _hotkeyNames[name] = id;
+        System.Diagnostics.Debug.WriteLine($"[HotkeyService] Successfully registered hotkey '{name}' (Key: {key}, Modifiers: {modifiers}) with ID: {id}");
         return true;
     }
 
@@ -108,6 +113,9 @@ public class HotkeyService : IDisposable
             successCount++;
 
         if (RegisterHotkey("Region", config.RegionHotkey.Modifiers, config.RegionHotkey.Key, () => App.CaptureRegion()))
+            successCount++;
+
+        if (RegisterHotkey("GifRecord", config.GifHotkey.Modifiers, config.GifHotkey.Key, () => App.CaptureGif()))
             successCount++;
 
         return successCount;

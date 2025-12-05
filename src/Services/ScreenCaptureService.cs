@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using SnipIt.Utils;
 
@@ -7,13 +8,93 @@ namespace SnipIt.Services;
 
 public static class ScreenCaptureService
 {
+    // DPI awareness context values
+    private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+    private const int MDT_EFFECTIVE_DPI = 0;
+
     /// <summary>
-    /// Captures the entire screen (all monitors)
+    /// Gets the DPI scale factor for a specific screen location
+    /// </summary>
+    public static double GetDpiScaleForPoint(int x, int y)
+    {
+        try
+        {
+            var point = new POINT { X = x, Y = y };
+            var monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
+            if (monitor != IntPtr.Zero)
+            {
+                GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, out uint dpiX, out _);
+                return dpiX / 96.0;
+            }
+        }
+        catch { }
+        return 1.0;
+    }
+
+    /// <summary>
+    /// Captures the entire screen (all monitors) with proper DPI handling
     /// </summary>
     public static Bitmap CaptureFullScreen()
     {
-        var bounds = GetVirtualScreenBounds();
-        return CaptureRegion(bounds);
+        // Temporarily set thread to per-monitor aware for accurate screen capture
+        var prevContext = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        try
+        {
+            var bounds = GetVirtualScreenBoundsPhysical();
+            return CaptureRegion(bounds);
+        }
+        finally
+        {
+            if (prevContext != IntPtr.Zero)
+                SetThreadDpiAwarenessContext(prevContext);
+        }
+    }
+
+    /// <summary>
+    /// Gets the virtual screen bounds in physical pixels (accounting for DPI)
+    /// </summary>
+    public static Rectangle GetVirtualScreenBoundsPhysical()
+    {
+        var allScreens = Screen.AllScreens;
+        int minX = int.MaxValue, minY = int.MaxValue;
+        int maxX = int.MinValue, maxY = int.MinValue;
+
+        foreach (var screen in allScreens)
+        {
+            // Get the DPI scale for this monitor
+            var dpiScale = GetDpiScaleForPoint(screen.Bounds.Left + 10, screen.Bounds.Top + 10);
+
+            // Calculate physical pixel bounds
+            int physLeft = (int)(screen.Bounds.Left * dpiScale);
+            int physTop = (int)(screen.Bounds.Top * dpiScale);
+            int physRight = (int)((screen.Bounds.Left + screen.Bounds.Width) * dpiScale);
+            int physBottom = (int)((screen.Bounds.Top + screen.Bounds.Height) * dpiScale);
+
+            minX = Math.Min(minX, screen.Bounds.Left);
+            minY = Math.Min(minY, screen.Bounds.Top);
+            maxX = Math.Max(maxX, screen.Bounds.Right);
+            maxY = Math.Max(maxY, screen.Bounds.Bottom);
+        }
+
+        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
     }
 
     /// <summary>

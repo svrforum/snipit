@@ -13,7 +13,7 @@
 
     <Grid x:Name="MainGrid">
         <!-- Background overlay with screenshot -->
-        <Image x:Name="BackgroundImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <Image x:Name="BackgroundImage" Stretch="Fill"/>
 
         <!-- Dark overlay -->
         <Canvas x:Name="OverlayCanvas" Background="#80000000"

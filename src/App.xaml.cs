@@ -25,31 +25,68 @@ public partial class App : System.Windows.Application
         _hotkeyService = HotkeyService.Instance;
         _trayIconService = TrayIconService.Instance;
 
+        // Create a hidden window for hotkey registration
+        // This ensures hotkeys work immediately, regardless of MainWindow state
+        var hotkeyWindow = new System.Windows.Window
+        {
+            Width = 0,
+            Height = 0,
+            WindowStyle = System.Windows.WindowStyle.None,
+            ShowInTaskbar = false,
+            ShowActivated = false,
+            Visibility = System.Windows.Visibility.Hidden
+        };
+        hotkeyWindow.Show();
+        hotkeyWindow.Hide();
+
+        // Initialize hotkey service with the hidden window
+        _hotkeyService.Initialize(hotkeyWindow);
+
         // Register hotkeys from saved config
         RegisterHotkeysFromConfig(config);
     }
 
     private void RegisterHotkeysFromConfig(AppSettingsConfig config)
     {
-        _hotkeyService?.RegisterHotkey("FullScreen",
+        var failedHotkeys = new List<string>();
+
+        if (!(_hotkeyService?.RegisterHotkey("FullScreen",
             config.FullScreenHotkey.Modifiers,
             config.FullScreenHotkey.Key,
-            () => CaptureFullScreen());
+            () => CaptureFullScreen()) ?? false))
+        {
+            failedHotkeys.Add($"전체 화면 캡처: {config.FullScreenHotkey}");
+        }
 
-        _hotkeyService?.RegisterHotkey("ActiveWindow",
+        if (!(_hotkeyService?.RegisterHotkey("ActiveWindow",
             config.ActiveWindowHotkey.Modifiers,
             config.ActiveWindowHotkey.Key,
-            () => CaptureActiveWindow());
+            () => CaptureActiveWindow()) ?? false))
+        {
+            failedHotkeys.Add($"활성 창 캡처: {config.ActiveWindowHotkey}");
+        }
 
-        _hotkeyService?.RegisterHotkey("Region",
+        if (!(_hotkeyService?.RegisterHotkey("Region",
             config.RegionHotkey.Modifiers,
             config.RegionHotkey.Key,
-            () => CaptureRegion());
+            () => CaptureRegion()) ?? false))
+        {
+            failedHotkeys.Add($"영역 캡처: {config.RegionHotkey}");
+        }
 
-        _hotkeyService?.RegisterHotkey("GifRecord",
+        if (!(_hotkeyService?.RegisterHotkey("GifRecord",
             config.GifHotkey.Modifiers,
             config.GifHotkey.Key,
-            () => CaptureGif());
+            () => CaptureGif()) ?? false))
+        {
+            failedHotkeys.Add($"GIF 녹화: {config.GifHotkey}");
+        }
+
+        // Show warning if any hotkeys failed to register
+        if (failedHotkeys.Count > 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"[App] Failed to register hotkeys: {string.Join(", ", failedHotkeys)}");
+        }
     }
 
     public static void CaptureFullScreen()

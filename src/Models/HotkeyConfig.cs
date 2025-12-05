@@ -8,10 +8,19 @@ namespace SnipIt.Models;
 /// <summary>
 /// Hotkey configuration using C# 12 primary constructor
 /// </summary>
-public sealed class HotkeyConfig(ModifierKeys modifiers = ModifierKeys.None, System.Windows.Forms.Keys key = System.Windows.Forms.Keys.None)
+public sealed class HotkeyConfig
 {
-    public ModifierKeys Modifiers { get; set; } = modifiers;
-    public System.Windows.Forms.Keys Key { get; set; } = key;
+    public ModifierKeys Modifiers { get; set; }
+    public System.Windows.Forms.Keys Key { get; set; }
+
+    // Parameterless constructor for JSON deserialization
+    public HotkeyConfig() : this(ModifierKeys.None, System.Windows.Forms.Keys.None) { }
+
+    public HotkeyConfig(ModifierKeys modifiers, System.Windows.Forms.Keys key)
+    {
+        Modifiers = modifiers;
+        Key = key;
+    }
 
     public override string ToString()
     {
@@ -106,7 +115,8 @@ public sealed class AppSettingsConfig
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     private static AppSettingsConfig Load()
@@ -116,7 +126,13 @@ public sealed class AppSettingsConfig
             if (File.Exists(ConfigPath))
             {
                 var json = File.ReadAllText(ConfigPath);
-                return JsonSerializer.Deserialize<AppSettingsConfig>(json, JsonOptions) ?? new();
+                var config = JsonSerializer.Deserialize<AppSettingsConfig>(json, JsonOptions);
+                if (config != null)
+                {
+                    // Ensure hotkey configs have valid defaults if they're null or have no key
+                    config.EnsureHotkeyDefaults();
+                    return config;
+                }
             }
         }
         catch
@@ -125,6 +141,26 @@ public sealed class AppSettingsConfig
         }
 
         return new AppSettingsConfig();
+    }
+
+    /// <summary>
+    /// Ensures all hotkey configurations have valid defaults.
+    /// This handles cases where settings.json is from an older version
+    /// or was partially corrupted.
+    /// </summary>
+    private void EnsureHotkeyDefaults()
+    {
+        if (FullScreenHotkey == null || FullScreenHotkey.Key == System.Windows.Forms.Keys.None)
+            FullScreenHotkey = new HotkeyConfig(ModifierKeys.None, System.Windows.Forms.Keys.PrintScreen);
+
+        if (ActiveWindowHotkey == null || ActiveWindowHotkey.Key == System.Windows.Forms.Keys.None)
+            ActiveWindowHotkey = new HotkeyConfig(ModifierKeys.Alt, System.Windows.Forms.Keys.PrintScreen);
+
+        if (RegionHotkey == null || RegionHotkey.Key == System.Windows.Forms.Keys.None)
+            RegionHotkey = new HotkeyConfig(ModifierKeys.Control | ModifierKeys.Shift, System.Windows.Forms.Keys.C);
+
+        if (GifHotkey == null || GifHotkey.Key == System.Windows.Forms.Keys.None)
+            GifHotkey = new HotkeyConfig(ModifierKeys.Control | ModifierKeys.Shift, System.Windows.Forms.Keys.G);
     }
 
     public void Save()

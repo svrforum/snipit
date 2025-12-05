@@ -68,6 +68,34 @@ public partial class EditorWindow : Window
     {
         // Apply Windows 11 styling
         Windows11Helper.ApplyWindows11Style(this, useMica: false, useDarkMode: Windows11Helper.IsSystemDarkTheme());
+
+        // Position window on primary monitor
+        PositionOnPrimaryMonitor();
+    }
+
+    private void PositionOnPrimaryMonitor()
+    {
+        var primaryScreen = System.Windows.Forms.Screen.PrimaryScreen;
+        if (primaryScreen == null) return;
+
+        var workArea = primaryScreen.WorkingArea;
+
+        // Center on primary monitor's working area
+        double windowWidth = Width;
+        double windowHeight = Height;
+
+        // If window size not set yet, use defaults
+        if (double.IsNaN(windowWidth) || windowWidth <= 0) windowWidth = 1200;
+        if (double.IsNaN(windowHeight) || windowHeight <= 0) windowHeight = 800;
+
+        // Ensure window fits within primary monitor
+        windowWidth = Math.Min(windowWidth, workArea.Width * 0.95);
+        windowHeight = Math.Min(windowHeight, workArea.Height * 0.95);
+
+        Left = workArea.Left + (workArea.Width - windowWidth) / 2;
+        Top = workArea.Top + (workArea.Height - windowHeight) / 2;
+        Width = windowWidth;
+        Height = windowHeight;
     }
 
     private void EditorWindow_Loaded(object sender, RoutedEventArgs e)

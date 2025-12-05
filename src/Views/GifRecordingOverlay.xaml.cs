@@ -39,22 +39,100 @@ public partial class GifRecordingOverlay : Window
     private GifRecorderService? _recorder;
     private DispatcherTimer? _countdownTimer;
     private DispatcherTimer? _recordingTimer;
-    private DispatcherTimer? _blinkTimer;
     private int _countdownValue = 3;
+    private RecordingControlWindow? _controlWindow;
+    private RecordingBorderWindow? _borderWindow;
 
     public GifRecordingOverlay()
     {
         _screenBitmap = ScreenCaptureService.CaptureFullScreen();
         InitializeComponent();
 
-        // Set window to cover all monitors (virtual screen)
-        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
-        Left = virtualScreen.Left;
-        Top = virtualScreen.Top;
-        Width = virtualScreen.Width;
-        Height = virtualScreen.Height;
+        // Initial size (will be adjusted in SourceInitialized)
+        Left = SystemParameters.VirtualScreenLeft;
+        Top = SystemParameters.VirtualScreenTop;
+        Width = SystemParameters.VirtualScreenWidth;
+        Height = SystemParameters.VirtualScreenHeight;
 
+        SourceInitialized += GifRecordingOverlay_SourceInitialized;
         Loaded += GifRecordingOverlay_Loaded;
+    }
+
+    private void GifRecordingOverlay_SourceInitialized(object? sender, EventArgs e)
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+
+        // Use EnumDisplayMonitors to get actual physical screen bounds
+        var monitors = new List<MONITORINFO>();
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+        {
+            var mi = new MONITORINFO();
+            mi.cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>();
+            if (GetMonitorInfo(hMonitor, ref mi))
+            {
+                monitors.Add(mi);
+            }
+            return true;
+        }, IntPtr.Zero);
+
+        if (monitors.Count == 0) return;
+
+        // Calculate bounding rectangle of all monitors
+        int minX = int.MaxValue, minY = int.MaxValue;
+        int maxX = int.MinValue, maxY = int.MinValue;
+
+        foreach (var mi in monitors)
+        {
+            minX = Math.Min(minX, mi.rcMonitor.Left);
+            minY = Math.Min(minY, mi.rcMonitor.Top);
+            maxX = Math.Max(maxX, mi.rcMonitor.Right);
+            maxY = Math.Max(maxY, mi.rcMonitor.Bottom);
+        }
+
+        // Position window to cover all monitors
+        SetWindowPos(hwnd, IntPtr.Zero,
+            minX, minY,
+            maxX - minX, maxY - minY,
+            SWP_NOZORDER | SWP_NOACTIVATE);
+
+        // Store the offset for coordinate conversion
+        _screenOffsetX = minX;
+        _screenOffsetY = minY;
+    }
+
+    private int _screenOffsetX;
+    private int _screenOffsetY;
+
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 
     private void GifRecordingOverlay_Loaded(object sender, RoutedEventArgs e)
@@ -62,12 +140,37 @@ public partial class GifRecordingOverlay : Window
         if (_screenBitmap != null)
         {
             BackgroundImage.Source = BitmapToImageSource(_screenBitmap);
-            Canvas.SetLeft(BackgroundImage, 0);
-            Canvas.SetTop(BackgroundImage, 0);
         }
 
         InitializeOverlays();
-        UpdateInfoPanel(new System.Windows.Point(0, 0));
+
+        // Move cursor position to be relative to virtual screen and update info panel
+        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
+        if (GetCursorPos(out var cursorPos))
+        {
+            // Convert screen coordinates to window coordinates
+            var windowPos = new System.Windows.Point(
+                cursorPos.X - virtualScreen.Left,
+                cursorPos.Y - virtualScreen.Top);
+            UpdateInfoPanel(windowPos);
+
+            // Move the WPF mouse position hint to cursor location
+            InfoPanel.Margin = new Thickness(windowPos.X + 10, windowPos.Y + 10, 0, 0);
+        }
+        else
+        {
+            UpdateInfoPanel(new System.Windows.Point(0, 0));
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
     }
 
     private void InitializeOverlays()
@@ -154,15 +257,68 @@ public partial class GifRecordingOverlay : Window
 
     private void Canvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        if (_state != RecordingState.Selecting) return;
+        // Only show magnifier and info during selection state
+        if (_state != RecordingState.Selecting)
+        {
+            // Ensure UI elements are hidden in non-selecting states
+            Magnifier.Visibility = Visibility.Collapsed;
+            InfoPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
 
         _currentPoint = e.GetPosition(OverlayCanvas);
         UpdateInfoPanel(_currentPoint);
+        UpdateMagnifier(_currentPoint);
 
         if (_isSelecting)
         {
             var rect = GetSelectionRect();
             UpdateOverlays(rect);
+        }
+    }
+
+    private void UpdateMagnifier(System.Windows.Point position)
+    {
+        if (_screenBitmap == null) return;
+
+        // Position magnifier at top-left of cursor
+        double magX = position.X - 140;
+        double magY = position.Y - 140;
+
+        // Adjust if near screen edge
+        if (magX < 10) magX = position.X + 20;
+        if (magY < 10) magY = position.Y + 20;
+
+        Magnifier.Margin = new Thickness(magX, magY, 0, 0);
+        Magnifier.Visibility = Visibility.Visible;
+
+        // Position InfoPanel below magnifier
+        InfoPanel.Margin = new Thickness(magX, magY + 125, 0, 0);
+
+        // Create magnified view (2x zoom of 60x60 area)
+        int srcX = Math.Max(0, (int)(position.X * _screenBitmap.Width / ActualWidth) - 30);
+        int srcY = Math.Max(0, (int)(position.Y * _screenBitmap.Height / ActualHeight) - 30);
+        int srcWidth = Math.Min(60, _screenBitmap.Width - srcX);
+        int srcHeight = Math.Min(60, _screenBitmap.Height - srcY);
+
+        if (srcWidth > 0 && srcHeight > 0)
+        {
+            try
+            {
+                var cropRect = new System.Drawing.Rectangle(srcX, srcY, srcWidth, srcHeight);
+                using var cropped = _screenBitmap.Clone(cropRect, _screenBitmap.PixelFormat);
+                using var scaled = new Bitmap(120, 120);
+                using var g = Graphics.FromImage(scaled);
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+                g.DrawImage(cropped, 0, 0, 120, 120);
+
+                MagnifierImage.Source = BitmapToImageSource(scaled);
+            }
+            catch
+            {
+                // Ignore magnifier errors
+            }
         }
     }
 
@@ -209,14 +365,21 @@ public partial class GifRecordingOverlay : Window
 
     private void StartCountdown()
     {
+        // Change state FIRST to prevent further mouse events from showing magnifier
         _state = RecordingState.Countdown;
 
-        // Hide selection UI and make window transparent for click-through
-        SelectionHelpPanel.Visibility = Visibility.Collapsed;
+        // Hide ALL selection UI elements immediately
+        Magnifier.Visibility = Visibility.Collapsed;
         InfoPanel.Visibility = Visibility.Collapsed;
+        SelectionHelpPanel.Visibility = Visibility.Collapsed;
         BackgroundImage.Visibility = Visibility.Collapsed;
         OverlayCanvas.Visibility = Visibility.Collapsed;
+
+        // Make window transparent
         Background = System.Windows.Media.Brushes.Transparent;
+
+        // Force immediate UI update to ensure elements are hidden
+        Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
 
         // Show recording border to indicate selected region
         RecordingBorder.Visibility = Visibility.Visible;
@@ -228,10 +391,20 @@ public partial class GifRecordingOverlay : Window
         RecordingBorder.Width = _selectedRegion.Width + 6;
         RecordingBorder.Height = _selectedRegion.Height + 6;
 
-        // Show countdown banner at top
+        // Show countdown banner at top center of primary screen
         CountdownPanel.Visibility = Visibility.Visible;
         _countdownValue = 3;
         CountdownText.Text = _countdownValue.ToString();
+
+        // Position countdown panel at top center of primary screen
+        CountdownPanel.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+        var panelWidth = CountdownPanel.DesiredSize.Width;
+        var screenWidth = SystemParameters.PrimaryScreenWidth;
+        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
+
+        // Calculate center position relative to window coordinates
+        double centerX = (screenWidth - panelWidth) / 2 - virtualScreen.Left;
+        CountdownPanel.Margin = new Thickness(Math.Max(0, centerX), 0, 0, 0);
 
         _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _countdownTimer.Tick += CountdownTimer_Tick;
@@ -257,30 +430,36 @@ public partial class GifRecordingOverlay : Window
     {
         _state = RecordingState.Recording;
 
-        // Hide countdown, show recording indicator
-        CountdownPanel.Visibility = Visibility.Collapsed;
-        RecordingPanel.Visibility = Visibility.Visible;
-
-        // Change border color to red (recording)
-        RecordingBorder.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0));
-
-        // Start blinking recording dot
-        _blinkTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _blinkTimer.Tick += (s, e) =>
-        {
-            RecordingDot.Visibility = RecordingDot.Visibility == Visibility.Visible
-                ? Visibility.Hidden
-                : Visibility.Visible;
-        };
-        _blinkTimer.Start();
-
-        // Start recording
+        // Calculate recording region before hiding overlay
         var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
         var recordRegion = new System.Drawing.Rectangle(
             (int)_selectedRegion.Left + virtualScreen.Left,
             (int)_selectedRegion.Top + virtualScreen.Top,
             (int)_selectedRegion.Width,
             (int)_selectedRegion.Height);
+
+        // Hide the overlay completely so it doesn't get recorded
+        CountdownPanel.Visibility = Visibility.Collapsed;
+        RecordingBorder.Visibility = Visibility.Collapsed;
+        Hide();
+
+        // Create separate control window outside recording area
+        _controlWindow = new RecordingControlWindow();
+        _controlWindow.StopRequested += () => Dispatcher.Invoke(StopRecording);
+
+        // Position control window at top center of primary screen
+        _controlWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+        _controlWindow.Show();
+
+        // Calculate top center position after window is shown (to get ActualWidth)
+        var screenWidth = SystemParameters.PrimaryScreenWidth;
+        _controlWindow.Left = (screenWidth - _controlWindow.ActualWidth) / 2;
+        _controlWindow.Top = 20; // 20px from top
+
+        // Show recording border window to indicate recording area
+        _borderWindow = new RecordingBorderWindow();
+        _borderWindow.SetRegion(recordRegion);
+        _borderWindow.Show();
 
         // Get FPS from settings
         var fps = AppSettingsConfig.Instance.GifFps;
@@ -298,10 +477,10 @@ public partial class GifRecordingOverlay : Window
 
     private void RecordingTimer_Tick(object? sender, EventArgs e)
     {
-        if (_recorder != null)
+        if (_recorder != null && _controlWindow != null)
         {
             var duration = _recorder.RecordingDuration;
-            RecordingTimeText.Text = $"REC {duration:mm\\:ss} ({_recorder.TargetFps}fps)";
+            _controlWindow.UpdateTime($"REC {duration:mm\\:ss} ({_recorder.TargetFps}fps)");
         }
     }
 
@@ -332,13 +511,19 @@ public partial class GifRecordingOverlay : Window
         if (_recorder == null) return;
 
         _recordingTimer?.Stop();
-        _blinkTimer?.Stop();
+
+        // Close control window and border window
+        _controlWindow?.Close();
+        _controlWindow = null;
+
+        _borderWindow?.Close();
+        _borderWindow = null;
 
         // Capture recorder reference before closing
         var recorder = _recorder;
         _recorder = null;
 
-        // Close window immediately
+        // Close this window
         Close();
 
         // Save GIF in background
@@ -374,6 +559,14 @@ public partial class GifRecordingOverlay : Window
                     StopRecording();
                     break;
             }
+        }
+    }
+
+    private void StopButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (_state == RecordingState.Recording)
+        {
+            StopRecording();
         }
     }
 
@@ -419,7 +612,8 @@ public partial class GifRecordingOverlay : Window
     {
         _countdownTimer?.Stop();
         _recordingTimer?.Stop();
-        _blinkTimer?.Stop();
+        _controlWindow?.Close();
+        _borderWindow?.Close();
         _recorder?.CancelRecording();
         _recorder?.Dispose();
         _screenBitmap?.Dispose();

@@ -13,7 +13,7 @@
 
     <Grid x:Name="MainGrid">
         <!-- Background overlay with screenshot (for region selection) -->
-        <Image x:Name="BackgroundImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <Image x:Name="BackgroundImage" Stretch="Fill"/>
 
         <!-- Dark overlay (for region selection) -->
         <Canvas x:Name="OverlayCanvas" Background="#80000000"
@@ -45,13 +45,13 @@
             </TextBlock>
         </Border>
 
-        <!-- Countdown banner (after selection) - shows at top, doesn't block input -->
+        <!-- Countdown banner (after selection) - positioned via code -->
         <Border x:Name="CountdownPanel"
                 Visibility="Collapsed"
                 Background="#EE000000"
                 CornerRadius="0,0,12,12"
                 Padding="30,15"
-                HorizontalAlignment="Center"
+                HorizontalAlignment="Left"
                 VerticalAlignment="Top">
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="CountdownText"
@@ -86,11 +86,18 @@
                            FontSize="16"
                            FontWeight="Bold"
                            VerticalAlignment="Center"/>
-                <TextBlock Text="  |  ESC로 종료"
-                           Foreground="#888888"
-                           FontSize="12"
-                           VerticalAlignment="Center"
-                           Margin="10,0,0,0"/>
+                <Border Background="#FF5252"
+                        CornerRadius="4"
+                        Margin="20,0,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="StopButton_Click">
+                    <TextBlock Text="■ 녹화 종료"
+                               Foreground="White"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               Padding="12,4"
+                               VerticalAlignment="Center"/>
+                </Border>
             </StackPanel>
         </Border>
 
@@ -102,5 +109,18 @@
                 Background="Transparent"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"/>
+
+        <!-- Magnifier (follows mouse during selection) -->
+        <Border x:Name="Magnifier"
+                Width="120" Height="120"
+                BorderBrush="#FF5252" BorderThickness="2"
+                Visibility="Collapsed"
+                HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Grid>
+                <Image x:Name="MagnifierImage" Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                <Line X1="60" Y1="0" X2="60" Y2="120" Stroke="#80FFFFFF" StrokeThickness="1"/>
+                <Line X1="0" Y1="60" X2="120" Y2="60" Stroke="#80FFFFFF" StrokeThickness="1"/>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

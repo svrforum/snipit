@@ -33,14 +33,91 @@ public partial class CaptureOverlay : Window
 
         InitializeComponent();
 
-        // Set window to cover all monitors (virtual screen)
-        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
-        Left = virtualScreen.Left;
-        Top = virtualScreen.Top;
-        Width = virtualScreen.Width;
-        Height = virtualScreen.Height;
+        // Initial size (will be adjusted in SourceInitialized)
+        Left = SystemParameters.VirtualScreenLeft;
+        Top = SystemParameters.VirtualScreenTop;
+        Width = SystemParameters.VirtualScreenWidth;
+        Height = SystemParameters.VirtualScreenHeight;
 
+        SourceInitialized += CaptureOverlay_SourceInitialized;
         Loaded += CaptureOverlay_Loaded;
+    }
+
+    private void CaptureOverlay_SourceInitialized(object? sender, EventArgs e)
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+
+        // Use EnumDisplayMonitors to get actual physical screen bounds
+        var monitors = new List<MONITORINFO>();
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+        {
+            var mi = new MONITORINFO();
+            mi.cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>();
+            if (GetMonitorInfo(hMonitor, ref mi))
+            {
+                monitors.Add(mi);
+            }
+            return true;
+        }, IntPtr.Zero);
+
+        if (monitors.Count == 0) return;
+
+        // Calculate bounding rectangle of all monitors
+        int minX = int.MaxValue, minY = int.MaxValue;
+        int maxX = int.MinValue, maxY = int.MinValue;
+
+        foreach (var mi in monitors)
+        {
+            minX = Math.Min(minX, mi.rcMonitor.Left);
+            minY = Math.Min(minY, mi.rcMonitor.Top);
+            maxX = Math.Max(maxX, mi.rcMonitor.Right);
+            maxY = Math.Max(maxY, mi.rcMonitor.Bottom);
+        }
+
+        // Position window to cover all monitors
+        SetWindowPos(hwnd, IntPtr.Zero,
+            minX, minY,
+            maxX - minX, maxY - minY,
+            SWP_NOZORDER | SWP_NOACTIVATE);
+
+        // Store the offset for coordinate conversion
+        _screenOffsetX = minX;
+        _screenOffsetY = minY;
+    }
+
+    private int _screenOffsetX;
+    private int _screenOffsetY;
+
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 
     private void CaptureOverlay_Loaded(object sender, RoutedEventArgs e)
@@ -49,17 +126,38 @@ public partial class CaptureOverlay : Window
         if (_screenBitmap != null)
         {
             BackgroundImage.Source = BitmapToImageSource(_screenBitmap);
-
-            // Position the image at virtual screen origin
-            var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
-            Canvas.SetLeft(BackgroundImage, 0);
-            Canvas.SetTop(BackgroundImage, 0);
         }
 
         // Initialize overlay rectangles
         InitializeOverlays();
 
-        UpdateInfoPanel(new System.Windows.Point(0, 0));
+        // Move cursor position to be relative to virtual screen and update info panel
+        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
+        if (GetCursorPos(out var cursorPos))
+        {
+            // Convert screen coordinates to window coordinates
+            var windowPos = new System.Windows.Point(
+                cursorPos.X - virtualScreen.Left,
+                cursorPos.Y - virtualScreen.Top);
+            UpdateInfoPanel(windowPos);
+
+            // Move the info panel to cursor location
+            InfoPanel.Margin = new Thickness(windowPos.X + 10, windowPos.Y + 10, 0, 0);
+        }
+        else
+        {
+            UpdateInfoPanel(new System.Windows.Point(0, 0));
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
     }
 
     private void InitializeOverlays()
@@ -206,37 +304,44 @@ public partial class CaptureOverlay : Window
     {
         if (_screenBitmap == null) return;
 
-        // Position magnifier
-        double offsetX = 20;
-        double offsetY = 20;
+        // Position magnifier at top-left of cursor
+        double magX = position.X - 140;
+        double magY = position.Y - 140;
 
         // Adjust if near screen edge
-        if (position.X + 140 > ActualWidth)
-            offsetX = -140;
-        if (position.Y + 140 > ActualHeight)
-            offsetY = -140;
+        if (magX < 10) magX = position.X + 20;
+        if (magY < 10) magY = position.Y + 20;
 
-        Canvas.SetLeft(Magnifier, position.X + offsetX);
-        Canvas.SetTop(Magnifier, position.Y + offsetY);
+        Magnifier.Margin = new Thickness(magX, magY, 0, 0);
         Magnifier.Visibility = Visibility.Visible;
 
-        // Create magnified view
-        int srcX = Math.Max(0, (int)position.X - 30);
-        int srcY = Math.Max(0, (int)position.Y - 30);
+        // Position InfoPanel below magnifier
+        InfoPanel.Margin = new Thickness(magX, magY + 125, 0, 0);
+
+        // Create magnified view (account for DPI scaling)
+        int srcX = Math.Max(0, (int)(position.X * _screenBitmap.Width / ActualWidth) - 30);
+        int srcY = Math.Max(0, (int)(position.Y * _screenBitmap.Height / ActualHeight) - 30);
         int srcWidth = Math.Min(60, _screenBitmap.Width - srcX);
         int srcHeight = Math.Min(60, _screenBitmap.Height - srcY);
 
         if (srcWidth > 0 && srcHeight > 0)
         {
-            var cropRect = new System.Drawing.Rectangle(srcX, srcY, srcWidth, srcHeight);
-            using var cropped = _screenBitmap.Clone(cropRect, _screenBitmap.PixelFormat);
-            using var scaled = new Bitmap(120, 120);
-            using var g = Graphics.FromImage(scaled);
-            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-            g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
-            g.DrawImage(cropped, 0, 0, 120, 120);
+            try
+            {
+                var cropRect = new System.Drawing.Rectangle(srcX, srcY, srcWidth, srcHeight);
+                using var cropped = _screenBitmap.Clone(cropRect, _screenBitmap.PixelFormat);
+                using var scaled = new Bitmap(120, 120);
+                using var g = Graphics.FromImage(scaled);
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+                g.DrawImage(cropped, 0, 0, 120, 120);
 
-            MagnifierImage.Source = BitmapToImageSource(scaled);
+                MagnifierImage.Source = BitmapToImageSource(scaled);
+            }
+            catch
+            {
+                // Ignore magnifier errors
+            }
         }
     }
 

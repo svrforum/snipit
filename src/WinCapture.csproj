@@ -30,6 +30,12 @@
 
     <!-- Windows App SDK for modern APIs -->
     <WindowsSdkPackageVersion>10.0.22621.45</WindowsSdkPackageVersion>
+
+    <!-- Application manifest for DPI settings -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- DPI awareness: PerMonitorV2 for proper multi-monitor support -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <!-- Release build optimization -->
