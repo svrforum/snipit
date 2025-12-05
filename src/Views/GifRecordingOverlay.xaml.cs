@@ -46,6 +46,14 @@ public partial class GifRecordingOverlay : Window
     {
         _screenBitmap = ScreenCaptureService.CaptureFullScreen();
         InitializeComponent();
+
+        // Set window to cover all monitors (virtual screen)
+        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
+        Left = virtualScreen.Left;
+        Top = virtualScreen.Top;
+        Width = virtualScreen.Width;
+        Height = virtualScreen.Height;
+
         Loaded += GifRecordingOverlay_Loaded;
     }
 

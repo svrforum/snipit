@@ -33,6 +33,13 @@ public partial class CaptureOverlay : Window
 
         InitializeComponent();
 
+        // Set window to cover all monitors (virtual screen)
+        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
+        Left = virtualScreen.Left;
+        Top = virtualScreen.Top;
+        Width = virtualScreen.Width;
+        Height = virtualScreen.Height;
+
         Loaded += CaptureOverlay_Loaded;
     }
 
