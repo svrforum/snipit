@@ -5,8 +5,8 @@
 # Snipit
 
 <p>가볍고 포터블한 Windows 화면 캡쳐 도구</p>
-<img width="386" height="366" alt="image" src="https://github.com/user-attachments/assets/0c6db9ac-c7c8-4c29-bd2a-0a1ac94110ff" />
-<img width="1134" height="689" alt="image" src="https://github.com/user-attachments/assets/391c2d53-9adf-4a7c-a564-0064688912c0" />
+
+<img width="1137" height="695" alt="image" src="https://github.com/user-attachments/assets/5008e51f-a9f3-4235-97d2-6780271d6437" />
 
 ## 기능
 
