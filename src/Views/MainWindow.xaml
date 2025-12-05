@@ -1,0 +1,149 @@
+<Window x:Class="SnipIt.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SnipIt"
+        Width="400" Height="380"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanMinimize"
+        Background="{StaticResource BackgroundBrush}"
+        StateChanged="Window_StateChanged"
+        Closing="Window_Closing"
+        Icon="pack://application:,,,/Assets/icon.ico">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="28,24,28,20">
+            <StackPanel>
+                <TextBlock Text="SnipIt" FontSize="26" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                <TextBlock Text="화면 캡쳐 도구" FontSize="14" Margin="0,4,0,0"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Capture buttons -->
+        <StackPanel Grid.Row="1" Margin="24,0">
+            <Button x:Name="BtnRegion" Style="{StaticResource CardButtonStyle}"
+                    Margin="0,6" Click="BtnRegion_Click">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="44" Height="44" CornerRadius="12" Background="#E5F9F0">
+                        <TextBlock Text="✂" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="#00C471"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="영역 선택" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock Text="원하는 영역을 선택해서 캡쳐합니다" FontSize="12" Margin="0,2,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="2" Background="{StaticResource SecondaryBrush}"
+                            CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
+                        <TextBlock Text="Ctrl+Shift+C" FontSize="11" FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                </Grid>
+            </Button>
+
+            <Button x:Name="BtnFullScreen" Style="{StaticResource CardButtonStyle}"
+                    Margin="0,6" Click="BtnFullScreen_Click">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="44" Height="44" CornerRadius="12" Background="#E5F0FF">
+                        <TextBlock Text="🖥" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="전체 화면" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock Text="모든 화면을 캡쳐합니다" FontSize="12" Margin="0,2,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="2" Background="{StaticResource SecondaryBrush}"
+                            CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
+                        <TextBlock Text="PrtSc" FontSize="11" FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                </Grid>
+            </Button>
+
+            <Button x:Name="BtnActiveWindow" Style="{StaticResource CardButtonStyle}"
+                    Margin="0,6" Click="BtnActiveWindow_Click">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="44" Height="44" CornerRadius="12" Background="#FFF0E5">
+                        <TextBlock Text="🪟" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="활성 창" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock Text="현재 창을 캡쳐합니다" FontSize="12" Margin="0,2,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="2" Background="{StaticResource SecondaryBrush}"
+                            CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
+                        <TextBlock Text="Alt+PrtSc" FontSize="11" FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                </Grid>
+            </Button>
+        </StackPanel>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="8" Height="8" Fill="#00C471"/>
+                    <TextBlock Text="백그라운드 실행 중" Margin="8,0,0,0"
+                               Foreground="{StaticResource TextTertiaryBrush}" FontSize="12"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="BtnHelp" Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,10" Click="BtnHelp_Click" Margin="0,0,8,0"
+                            ToolTip="단축키 안내">
+                        <TextBlock Text="?" FontSize="14" FontWeight="Bold"/>
+                    </Button>
+                    <Button x:Name="BtnSettings" Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="16,10" Click="BtnSettings_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚙" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="설정" Margin="6,0,0,0" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

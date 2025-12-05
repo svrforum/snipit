@@ -1,0 +1,266 @@
+<Window x:Class="SnipIt.Views.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SnipIt - 단축키 안내"
+        Width="480" Height="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BackgroundBrush}"
+        Icon="pack://application:,,,/Assets/icon.ico">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="⌨ 단축키 안내" FontSize="22" FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}"/>
+            <TextBlock Text="자주 사용하는 단축키를 확인하세요" FontSize="13" Margin="0,6,0,0"
+                       Foreground="{StaticResource TextSecondaryBrush}"/>
+        </StackPanel>
+
+        <!-- Shortcut Lists -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 캡쳐 단축키 -->
+                <Border Background="{StaticResource CardBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="📸 캡쳐" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="영역 선택 캡쳐" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="Ctrl+Shift+C" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="전체 화면 캡쳐" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="PrtSc" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="활성 창 캡쳐" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="Alt+PrtSc" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 편집기 도구 단축키 -->
+                <Border Background="{StaticResource CardBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="🎨 편집 도구" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="선택" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="V" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="펜" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="P" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="화살표" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="A" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="직선" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="L" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="사각형" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="R" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="타원" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="E" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="텍스트" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="T" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="형광펜" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="H" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="모자이크" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="M" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 일반 단축키 -->
+                <Border Background="{StaticResource CardBrush}" CornerRadius="12" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="⚡ 일반" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="저장" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="Ctrl+S" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="클립보드에 복사" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="Ctrl+C" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="실행 취소" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="Ctrl+Z" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="다시 실행" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="Ctrl+Y" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="도구 선택 취소" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="10,4">
+                                <TextBlock Text="Esc" FontWeight="Medium" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Close Button -->
+        <Button Grid.Row="2" Content="닫기"
+                Style="{StaticResource PrimaryButtonStyle}"
+                Padding="24,10" Margin="0,20,0,0"
+                HorizontalAlignment="Center"
+                Click="BtnClose_Click"/>
+    </Grid>
+</Window>

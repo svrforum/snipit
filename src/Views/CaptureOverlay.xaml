@@ -1,0 +1,63 @@
+<Window x:Class="SnipIt.Views.CaptureOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="영역 캡쳐"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        WindowState="Maximized"
+        Cursor="Cross"
+        KeyDown="Window_KeyDown">
+
+    <Grid x:Name="MainGrid">
+        <!-- Background overlay with screenshot -->
+        <Image x:Name="BackgroundImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+
+        <!-- Dark overlay -->
+        <Canvas x:Name="OverlayCanvas" Background="#80000000"
+                MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
+                MouseMove="Canvas_MouseMove"
+                MouseLeftButtonUp="Canvas_MouseLeftButtonUp">
+
+            <!-- Selection rectangle (will be drawn programmatically) -->
+        </Canvas>
+
+        <!-- Info panel -->
+        <Border x:Name="InfoPanel"
+                Background="#DD000000"
+                CornerRadius="4"
+                Padding="10,6"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="SizeText" Foreground="White" FontFamily="Consolas" FontSize="12"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Help text -->
+        <Border Background="#AA000000" CornerRadius="4" Padding="12,8"
+                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30">
+            <TextBlock Foreground="White" FontSize="12" TextAlignment="Center">
+                <Run Text="드래그하여 영역을 선택하세요"/>
+                <LineBreak/>
+                <Run Text="ESC 취소 | Enter 확인"/>
+            </TextBlock>
+        </Border>
+
+        <!-- Magnifier -->
+        <Border x:Name="Magnifier"
+                Width="120" Height="120"
+                BorderBrush="#2196F3" BorderThickness="2"
+                Visibility="Collapsed"
+                HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Grid>
+                <Image x:Name="MagnifierImage" Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                <Line X1="60" Y1="0" X2="60" Y2="120" Stroke="#80FFFFFF" StrokeThickness="1"/>
+                <Line X1="0" Y1="60" X2="120" Y2="60" Stroke="#80FFFFFF" StrokeThickness="1"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

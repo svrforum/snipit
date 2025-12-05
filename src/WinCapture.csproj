@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <LangVersion>13</LangVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Enable cross-platform Windows targeting (build on Linux) -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>SnipIt</AssemblyName>
+    <RootNamespace>SnipIt</RootNamespace>
+    <Version>2.0.0</Version>
+    <Authors>SnipIt</Authors>
+    <Description>가벼운 Windows 화면 캡쳐 도구</Description>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+
+    <!-- Enable latest C# features -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Single file publish settings -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <SelfContained>true</SelfContained>
+
+    <!-- Windows App SDK for modern APIs -->
+    <WindowsSdkPackageVersion>10.0.22621.45</WindowsSdkPackageVersion>
+  </PropertyGroup>
+
+  <!-- Release build optimization -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+    <TrimMode>partial</TrimMode>
+    <PublishDir>$(MSBuildProjectDirectory)/../Publish/</PublishDir>
+  </PropertyGroup>
+
+  <!-- Package References -->
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+
+  <!-- Include icon as resource -->
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+  </ItemGroup>
+
+</Project>

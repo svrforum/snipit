@@ -1,0 +1,459 @@
+<Window x:Class="SnipIt.Views.EditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SnipIt - 편집기"
+        Width="1150" Height="700"
+        MinWidth="900" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SurfaceBrush}"
+        Icon="pack://application:,,,/Assets/icon.ico">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Background="{StaticResource BackgroundBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                Padding="16,10">
+            <WrapPanel>
+                <!-- File operations -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                    <Button x:Name="BtnSave" Style="{StaticResource ToolButtonStyle}" ToolTip="저장 (Ctrl+S)" Click="BtnSave_Click">
+                        <TextBlock Text="💾" FontSize="18"/>
+                    </Button>
+                    <Button x:Name="BtnCopy" Style="{StaticResource ToolButtonStyle}" ToolTip="클립보드에 복사 (Ctrl+C)" Click="BtnCopy_Click">
+                        <TextBlock Text="📋" FontSize="18"/>
+                    </Button>
+                </StackPanel>
+
+                <Border Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"/>
+
+                <!-- Undo/Redo -->
+                <StackPanel Orientation="Horizontal" Margin="8,0">
+                    <Button x:Name="BtnUndo" Style="{StaticResource ToolButtonStyle}" ToolTip="실행 취소 (Ctrl+Z)" Click="BtnUndo_Click">
+                        <TextBlock Text="↶" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Button>
+                    <Button x:Name="BtnRedo" Style="{StaticResource ToolButtonStyle}" ToolTip="다시 실행 (Ctrl+Y)" Click="BtnRedo_Click">
+                        <TextBlock Text="↷" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Button>
+                </StackPanel>
+
+                <Border Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"/>
+
+                <!-- Drawing tools -->
+                <StackPanel Orientation="Horizontal" Margin="8,0">
+                    <ToggleButton x:Name="BtnSelect" Style="{StaticResource ToolToggleButtonStyle}"
+                                  IsChecked="True" Click="ToolButton_Click" Tag="Select">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="선택" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: V" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <TextBlock Text="⬚" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnPen" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Pen">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="펜" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: P" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <TextBlock Text="✏" FontSize="18"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnArrow" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Arrow">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="화살표" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: A" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <TextBlock Text="➔" FontSize="18"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnLine" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Line">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="직선" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: L" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <TextBlock Text="╱" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnRectangle" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Rectangle">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="사각형" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: R" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <TextBlock Text="▢" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnEllipse" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Ellipse">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="타원" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: E" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <TextBlock Text="◯" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnText" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Text">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="텍스트" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: T" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <TextBlock Text="A" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnHighlight" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Highlight">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="형광펜" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: H" Foreground="Gray" FontSize="11"/>
+                                <TextBlock Text="반투명 노란색 마커" Foreground="Gray" FontSize="10"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <Grid Width="20" Height="20">
+                            <!-- 형광펜 마커 모양 -->
+                            <Rectangle Fill="#FFEB3B" Width="14" Height="8" RadiusX="2" RadiusY="2"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Opacity="0.8"/>
+                            <Rectangle Fill="#FDD835" Width="14" Height="8" RadiusX="2" RadiusY="2"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Margin="0,0,0,2"/>
+                        </Grid>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnBlur" Style="{StaticResource ToolToggleButtonStyle}"
+                                  Click="ToolButton_Click" Tag="Blur">
+                        <ToggleButton.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="모자이크" FontWeight="SemiBold"/>
+                                <TextBlock Text="단축키: M" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <Grid Width="20" Height="20">
+                            <Rectangle Fill="#8B95A1" Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                            <Rectangle Fill="#B0B8C1" Width="6" Height="6" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                            <Rectangle Fill="#8B95A1" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                            <Rectangle Fill="#B0B8C1" Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <Rectangle Fill="#8B95A1" Width="6" Height="6" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Rectangle Fill="#B0B8C1" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            <Rectangle Fill="#8B95A1" Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+                            <Rectangle Fill="#B0B8C1" Width="6" Height="6" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                            <Rectangle Fill="#8B95A1" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                        </Grid>
+                    </ToggleButton>
+                </StackPanel>
+
+                <Border Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"/>
+
+                <!-- Color picker -->
+                <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center">
+                    <TextBlock Text="색상" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Border Width="32" Height="32" CornerRadius="8" BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="ColorPicker_Click">
+                        <Border.Background>
+                            <SolidColorBrush x:Name="CurrentColorBrush" Color="#F04452"/>
+                        </Border.Background>
+                    </Border>
+
+                    <!-- Quick colors -->
+                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
+                        <Border Width="24" Height="24" Background="#F04452" Margin="2" Cursor="Hand"
+                                MouseLeftButtonDown="QuickColor_Click" CornerRadius="6"/>
+                        <Border Width="24" Height="24" Background="#00C471" Margin="2" Cursor="Hand"
+                                MouseLeftButtonDown="QuickColor_Click" CornerRadius="6"/>
+                        <Border Width="24" Height="24" Background="#3182F6" Margin="2" Cursor="Hand"
+                                MouseLeftButtonDown="QuickColor_Click" CornerRadius="6"/>
+                        <Border Width="24" Height="24" Background="#FFC107" Margin="2" Cursor="Hand"
+                                MouseLeftButtonDown="QuickColor_Click" CornerRadius="6"/>
+                        <Border Width="24" Height="24" Background="#191F28" Margin="2" Cursor="Hand"
+                                MouseLeftButtonDown="QuickColor_Click" CornerRadius="6"/>
+                        <Border Width="24" Height="24" Background="#FFFFFF" BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1" Margin="2" Cursor="Hand"
+                                MouseLeftButtonDown="QuickColor_Click" CornerRadius="6"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"/>
+
+                <!-- Stroke width -->
+                <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center">
+                    <TextBlock Text="크기" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Slider x:Name="StrokeWidthSlider" Width="80" Minimum="1" Maximum="20" Value="3"
+                            VerticalAlignment="Center" ValueChanged="StrokeWidthSlider_ValueChanged"/>
+                    <Border Background="{StaticResource SecondaryBrush}" CornerRadius="6" Padding="8,4" Margin="8,0,0,0">
+                        <TextBlock x:Name="StrokeWidthText" Text="3" Width="16" TextAlignment="Center"
+                                   FontSize="12" FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                </StackPanel>
+
+                <Border Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"/>
+
+                <!-- Text options (visible when Text tool selected) -->
+                <StackPanel x:Name="TextOptionsPanel" Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center"
+                            Visibility="Collapsed">
+                    <TextBlock Text="폰트" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <ComboBox x:Name="CmbFontFamily" Width="120" VerticalAlignment="Center"
+                              SelectionChanged="CmbFontFamily_SelectionChanged">
+                        <ComboBoxItem Content="맑은 고딕" Tag="Malgun Gothic" IsSelected="True"/>
+                        <ComboBoxItem Content="나눔고딕" Tag="NanumGothic"/>
+                        <ComboBoxItem Content="굴림" Tag="Gulim"/>
+                        <ComboBoxItem Content="돋움" Tag="Dotum"/>
+                        <ComboBoxItem Content="바탕" Tag="Batang"/>
+                        <ComboBoxItem Content="Arial" Tag="Arial"/>
+                        <ComboBoxItem Content="Times New Roman" Tag="Times New Roman"/>
+                        <ComboBoxItem Content="Consolas" Tag="Consolas"/>
+                    </ComboBox>
+
+                    <TextBlock Text="크기" FontSize="12" VerticalAlignment="Center" Margin="12,0,8,0"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <ComboBox x:Name="CmbFontSize" Width="65" VerticalAlignment="Center"
+                              SelectionChanged="CmbFontSize_SelectionChanged">
+                        <ComboBoxItem Content="12" Tag="12"/>
+                        <ComboBoxItem Content="14" Tag="14"/>
+                        <ComboBoxItem Content="16" Tag="16" IsSelected="True"/>
+                        <ComboBoxItem Content="18" Tag="18"/>
+                        <ComboBoxItem Content="20" Tag="20"/>
+                        <ComboBoxItem Content="24" Tag="24"/>
+                        <ComboBoxItem Content="28" Tag="28"/>
+                        <ComboBoxItem Content="32" Tag="32"/>
+                        <ComboBoxItem Content="36" Tag="36"/>
+                        <ComboBoxItem Content="48" Tag="48"/>
+                        <ComboBoxItem Content="72" Tag="72"/>
+                    </ComboBox>
+
+                    <ToggleButton x:Name="BtnBold" Style="{StaticResource ToolToggleButtonStyle}" ToolTip="굵게"
+                                  Margin="8,0,0,0" Click="BtnBold_Click">
+                        <TextBlock Text="B" FontSize="14" FontWeight="Bold"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="BtnItalic" Style="{StaticResource ToolToggleButtonStyle}" ToolTip="기울임"
+                                  Click="BtnItalic_Click">
+                        <TextBlock Text="I" FontSize="14" FontStyle="Italic"/>
+                    </ToggleButton>
+                </StackPanel>
+
+                <!-- Highlight color indicator (visible when Highlight tool selected) -->
+                <StackPanel x:Name="HighlightOptionsPanel" Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center"
+                            Visibility="Collapsed">
+                    <Border Width="20" Height="20" Background="#80FFEB3B" CornerRadius="4" Margin="0,0,6,0"/>
+                    <TextBlock Text="반투명 형광 마커" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+
+                <Border x:Name="TextOptionsSeparator" Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"
+                        Visibility="Collapsed"/>
+
+                <!-- Crop -->
+                <Button x:Name="BtnCrop" Style="{StaticResource ToolButtonStyle}" ToolTip="자르기" Click="BtnCrop_Click" Margin="8,0">
+                    <TextBlock Text="✂" FontSize="18"/>
+                </Button>
+            </WrapPanel>
+        </Border>
+
+        <!-- Main content area with sidebar -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="200"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Canvas area -->
+            <ScrollViewer x:Name="ImageScrollViewer" Grid.Column="0"
+                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          Padding="24" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                <Border Background="{StaticResource CardBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        CornerRadius="8" Effect="{StaticResource CardShadow}">
+                    <Grid x:Name="CanvasContainer">
+                        <Grid.LayoutTransform>
+                            <ScaleTransform x:Name="CanvasScale" ScaleX="1" ScaleY="1"/>
+                        </Grid.LayoutTransform>
+
+                        <!-- Base image -->
+                        <Image x:Name="BaseImage" Stretch="None"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"/>
+
+                        <!-- Drawing canvas - overlays image exactly -->
+                        <Canvas x:Name="DrawingCanvas"
+                                MouseLeftButtonDown="DrawingCanvas_MouseLeftButtonDown"
+                                MouseMove="DrawingCanvas_MouseMove"
+                                MouseLeftButtonUp="DrawingCanvas_MouseLeftButtonUp"
+                                Background="Transparent"
+                                ClipToBounds="True"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"/>
+                    </Grid>
+                </Border>
+            </ScrollViewer>
+
+            <!-- History Sidebar -->
+            <Border Grid.Column="1" Background="{StaticResource BackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" Padding="16,12" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <TextBlock Text="히스토리" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                    </Border>
+
+                    <!-- History List -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="HistoryList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="8,4" Padding="8" CornerRadius="8" Cursor="Hand"
+                                            MouseLeftButtonDown="HistoryItem_Click">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+                                                <Setter Property="BorderThickness" Value="2"/>
+                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+                                                    </Trigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="BorderBrush" Value="#3182F6"/>
+                                                        <Setter Property="Background" Value="#E8F2FF"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Number badge -->
+                                            <Border Grid.Row="0" Background="#3182F6" CornerRadius="4"
+                                                    HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,6">
+                                                <TextBlock Text="{Binding DisplayNumber}" FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="White"/>
+                                            </Border>
+
+                                            <!-- Thumbnail -->
+                                            <Border Grid.Row="1" CornerRadius="4" ClipToBounds="True"
+                                                    HorizontalAlignment="Center" BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1">
+                                                <Image x:Name="ThumbnailImage" Width="160" Height="100"
+                                                       Stretch="Uniform" Source="{Binding Thumbnail}"/>
+                                            </Border>
+
+                                            <!-- Info -->
+                                            <Grid Grid.Row="2" Margin="0,6,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding DisplayDateTime}" FontSize="11"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding DisplaySize}" FontSize="10"
+                                                           Foreground="{StaticResource TextTertiaryBrush}"/>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Footer -->
+                    <Border Grid.Row="2" Padding="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <Button x:Name="BtnClearHistory" Content="히스토리 삭제"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                FontSize="12" Padding="12,6"
+                                Click="BtnClearHistory_Click"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2" Background="{StaticResource BackgroundBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Image size (left) -->
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <TextBlock x:Name="ImageSizeText" FontSize="12" FontWeight="Medium"
+                               Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Status (center) -->
+                <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Center">
+                    <Ellipse Width="8" Height="8" Fill="#00C471" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusText" Text="준비됨" Margin="8,0,0,0"
+                               VerticalAlignment="Center" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+
+                <!-- Zoom controls (right) -->
+                <StackPanel Orientation="Horizontal" Grid.Column="2" Margin="0,0,12,0">
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Padding="8,4"
+                            Click="BtnZoomOut_Click" ToolTip="축소">
+                        <TextBlock Text="−" FontSize="14" FontWeight="Bold"/>
+                    </Button>
+                    <Border Background="{StaticResource SecondaryBrush}" CornerRadius="6"
+                            Padding="12,4" Margin="4,0">
+                        <TextBlock x:Name="ZoomText" Text="100%" FontSize="12" FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}" MinWidth="40" TextAlignment="Center"/>
+                    </Border>
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Padding="8,4"
+                            Click="BtnZoomIn_Click" ToolTip="확대">
+                        <TextBlock Text="+" FontSize="14" FontWeight="Bold"/>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="8,0,0,0"
+                            Click="BtnZoom100_Click" ToolTip="원본 크기 (100%)">
+                        <TextBlock Text="1:1" FontSize="11" FontWeight="SemiBold"/>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="4,0,0,0"
+                            Click="BtnZoomFit_Click" ToolTip="화면에 맞춤">
+                        <TextBlock Text="맞춤" FontSize="11" FontWeight="SemiBold"/>
+                    </Button>
+                </StackPanel>
+
+                <Button x:Name="BtnHelp" Grid.Column="3" Style="{StaticResource SecondaryButtonStyle}"
+                        Padding="10,6" Margin="0,0,12,0" Click="BtnHelp_Click"
+                        ToolTip="단축키 안내">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="?" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="단축키" Margin="6,0,0,0" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
