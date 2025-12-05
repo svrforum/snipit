@@ -60,6 +60,14 @@ public partial class SettingsWindow : Window
             _ => 1 // SkipFrames default
         };
 
+        CmbGifMaxDuration.SelectedIndex = _config.GifMaxDurationSeconds switch
+        {
+            30 => 0,
+            120 => 2,
+            180 => 3,
+            _ => 1 // 60s default
+        };
+
         // Hotkeys
         HotkeyFullScreen.HotkeyConfig = _config.FullScreenHotkey;
         HotkeyActiveWindow.HotkeyConfig = _config.ActiveWindowHotkey;
@@ -137,6 +145,15 @@ public partial class SettingsWindow : Window
             "Original" => GifQualityPreset.Original,
             "SkipFramesHalfSize" => GifQualityPreset.SkipFramesHalfSize,
             _ => GifQualityPreset.SkipFrames
+        };
+
+        var selectedMaxDuration = (CmbGifMaxDuration.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        _config.GifMaxDurationSeconds = selectedMaxDuration switch
+        {
+            "30" => 30,
+            "120" => 120,
+            "180" => 180,
+            _ => 60
         };
 
         // Hotkeys

@@ -49,7 +49,11 @@ public partial class RecordingControlWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
-        _blinkTimer?.Stop();
+        if (_blinkTimer != null)
+        {
+            _blinkTimer.Stop();
+            _blinkTimer = null;
+        }
         base.OnClosed(e);
     }
 }

@@ -111,6 +111,19 @@
                         </StackPanel>
                         <TextBlock Text="중복 프레임 스킵: 변화 없는 프레임을 건너뛰어 용량 감소"
                                    Foreground="{StaticResource TextTertiaryBrush}" FontSize="11" Margin="0,8,0,0"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <TextBlock Text="최대 녹화 시간" FontSize="14" VerticalAlignment="Center" Width="140"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <ComboBox x:Name="CmbGifMaxDuration" Width="120" Padding="12,10">
+                                <ComboBoxItem Content="30초" Tag="30"/>
+                                <ComboBoxItem Content="60초" Tag="60" IsSelected="True"/>
+                                <ComboBoxItem Content="120초" Tag="120"/>
+                                <ComboBoxItem Content="180초" Tag="180"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <TextBlock Text="⚠️ 녹화 시간이 길수록 메모리 사용량이 증가합니다. (60초 기준 약 300~500MB)"
+                                   Foreground="{StaticResource TextTertiaryBrush}" FontSize="11" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Border>
 

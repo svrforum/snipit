@@ -116,6 +116,7 @@ public sealed class AppSettingsConfig
     // GIF settings
     public int GifFps { get; set; } = 30; // 15, 30, or 60
     public GifQualityPreset GifQuality { get; set; } = GifQualityPreset.SkipFrames; // 기본값: 중복 프레임 스킵
+    public int GifMaxDurationSeconds { get; set; } = 60; // 최대 녹화 시간 (초), 기본 60초
 
     // Hotkey settings with collection expression
     public HotkeyConfig FullScreenHotkey { get; set; } = new(ModifierKeys.None, System.Windows.Forms.Keys.PrintScreen);

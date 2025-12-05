@@ -26,18 +26,18 @@ public partial class MainWindow : Window
         HotkeyService.Instance.Initialize(this);
     }
 
-    private void BtnFullScreen_Click(object sender, RoutedEventArgs e)
+    private async void BtnFullScreen_Click(object sender, RoutedEventArgs e)
     {
         Hide();
-        // Small delay to ensure window is hidden
-        System.Threading.Thread.Sleep(200);
+        // Small delay to ensure window is hidden (non-blocking)
+        await Task.Delay(200);
         App.CaptureFullScreen();
     }
 
-    private void BtnActiveWindow_Click(object sender, RoutedEventArgs e)
+    private async void BtnActiveWindow_Click(object sender, RoutedEventArgs e)
     {
         Hide();
-        System.Threading.Thread.Sleep(200);
+        await Task.Delay(200);
         App.CaptureActiveWindow();
     }
 

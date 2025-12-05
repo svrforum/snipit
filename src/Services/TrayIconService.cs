@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
@@ -12,6 +13,10 @@ public class TrayIconService : IDisposable
 
     private NotifyIcon? _notifyIcon;
     private ContextMenuStrip? _contextMenu;
+    private IntPtr _iconHandle = IntPtr.Zero;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
 
     private TrayIconService()
     {
@@ -88,7 +93,15 @@ public class TrayIconService : IDisposable
             g.FillEllipse(whiteBrush, 18, 18, 6, 6);
         }
 
-        return Icon.FromHandle(bitmap.GetHicon());
+        // Clean up previous icon handle if exists
+        if (_iconHandle != IntPtr.Zero)
+        {
+            DestroyIcon(_iconHandle);
+        }
+
+        _iconHandle = bitmap.GetHicon();
+        bitmap.Dispose();
+        return Icon.FromHandle(_iconHandle);
     }
 
     private void ShowMainWindow()
@@ -129,6 +142,14 @@ public class TrayIconService : IDisposable
     {
         _notifyIcon?.Dispose();
         _contextMenu?.Dispose();
+
+        // Clean up GDI icon handle
+        if (_iconHandle != IntPtr.Zero)
+        {
+            DestroyIcon(_iconHandle);
+            _iconHandle = IntPtr.Zero;
+        }
+
         _instance = null;
     }
 }

@@ -27,6 +27,7 @@ public partial class EditorWindow : Window
     private Bitmap _originalBitmap;
     private readonly Stack<Bitmap> _undoStack = new();
     private readonly Stack<Bitmap> _redoStack = new();
+    private const int MaxUndoStackSize = 10;
 
     private string _currentTool = "Select";
     private Color _currentColor = Colors.Red;
@@ -394,6 +395,23 @@ public partial class EditorWindow : Window
     private void SaveState()
     {
         _undoStack.Push((Bitmap)_originalBitmap.Clone());
+
+        // Limit undo stack size to prevent excessive memory usage
+        while (_undoStack.Count > MaxUndoStackSize)
+        {
+            var oldest = _undoStack.ToArray()[_undoStack.Count - 1];
+            oldest.Dispose();
+            // Rebuild stack without oldest item
+            var items = _undoStack.ToArray();
+            _undoStack.Clear();
+            for (int i = 0; i < items.Length - 1; i++)
+            {
+                _undoStack.Push(items[items.Length - 2 - i]);
+            }
+        }
+
+        // Clear redo stack
+        foreach (var bitmap in _redoStack) bitmap.Dispose();
         _redoStack.Clear();
     }
 

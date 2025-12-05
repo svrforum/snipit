@@ -43,6 +43,10 @@ public partial class GifRecordingOverlay : Window
     private RecordingControlWindow? _controlWindow;
     private RecordingBorderWindow? _borderWindow;
 
+    // Throttle magnifier updates to reduce GC pressure
+    private DateTime _lastMagnifierUpdate = DateTime.MinValue;
+    private const int MagnifierUpdateIntervalMs = 33; // ~30fps
+
     public GifRecordingOverlay()
     {
         _screenBitmap = ScreenCaptureService.CaptureFullScreen();
@@ -268,7 +272,14 @@ public partial class GifRecordingOverlay : Window
 
         _currentPoint = e.GetPosition(OverlayCanvas);
         UpdateInfoPanel(_currentPoint);
-        UpdateMagnifier(_currentPoint);
+
+        // Throttle magnifier updates to ~30fps to reduce GC pressure
+        var now = DateTime.Now;
+        if ((now - _lastMagnifierUpdate).TotalMilliseconds >= MagnifierUpdateIntervalMs)
+        {
+            UpdateMagnifier(_currentPoint);
+            _lastMagnifierUpdate = now;
+        }
 
         if (_isSelecting)
         {
@@ -461,13 +472,15 @@ public partial class GifRecordingOverlay : Window
         _borderWindow.SetRegion(recordRegion);
         _borderWindow.Show();
 
-        // Get FPS and quality from settings
+        // Get FPS, quality, and max duration from settings
         var fps = AppSettingsConfig.Instance.GifFps;
         var quality = AppSettingsConfig.Instance.GifQuality;
-        _recorder = new GifRecorderService(fps, quality);
+        var maxDuration = AppSettingsConfig.Instance.GifMaxDurationSeconds;
+        _recorder = new GifRecorderService(fps, quality, maxDuration);
         _recorder.RecordingProgress += OnRecordingProgress;
         _recorder.RecordingCompleted += OnRecordingCompleted;
         _recorder.RecordingError += OnRecordingError;
+        _recorder.MaxDurationReached += OnMaxDurationReached;
         _recorder.StartRecording(recordRegion);
 
         // Update recording time display
@@ -481,7 +494,9 @@ public partial class GifRecordingOverlay : Window
         if (_recorder != null && _controlWindow != null)
         {
             var duration = _recorder.RecordingDuration;
-            _controlWindow.UpdateTime($"REC {duration:mm\\:ss} ({_recorder.TargetFps}fps)");
+            var maxDuration = _recorder.MaxDurationSeconds;
+            var remaining = maxDuration - (int)duration.TotalSeconds;
+            _controlWindow.UpdateTime($"REC {duration:mm\\:ss} / {maxDuration}s ({_recorder.TargetFps}fps)");
         }
     }
 
@@ -504,6 +519,15 @@ public partial class GifRecordingOverlay : Window
                 "녹화 오류",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
+        });
+    }
+
+    private void OnMaxDurationReached()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            // Auto-stop recording when max duration reached
+            StopRecording();
         });
     }
 

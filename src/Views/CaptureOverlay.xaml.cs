@@ -24,6 +24,10 @@ public partial class CaptureOverlay : Window
     private Rectangle? _leftOverlay;
     private Rectangle? _rightOverlay;
 
+    // Throttle magnifier updates to reduce GC pressure
+    private DateTime _lastMagnifierUpdate = DateTime.MinValue;
+    private const int MagnifierUpdateIntervalMs = 33; // ~30fps
+
     public Bitmap? CapturedImage { get; private set; }
 
     public CaptureOverlay()
@@ -253,7 +257,14 @@ public partial class CaptureOverlay : Window
         _currentPoint = e.GetPosition(OverlayCanvas);
 
         UpdateInfoPanel(_currentPoint);
-        UpdateMagnifier(_currentPoint);
+
+        // Throttle magnifier updates to ~30fps to reduce GC pressure
+        var now = DateTime.Now;
+        if ((now - _lastMagnifierUpdate).TotalMilliseconds >= MagnifierUpdateIntervalMs)
+        {
+            UpdateMagnifier(_currentPoint);
+            _lastMagnifierUpdate = now;
+        }
 
         if (_isSelecting)
         {

@@ -29,10 +29,12 @@ public sealed class GifRecorderService : IDisposable
     private readonly int _colorDepth;
     private readonly bool _skipDuplicates;
     private readonly double _duplicateThreshold;
+    private readonly int _maxDurationSeconds;
 
     public event Action<TimeSpan>? RecordingProgress;
     public event Action<string>? RecordingCompleted;
     public event Action<string>? RecordingError;
+    public event Action? MaxDurationReached;
 
     public bool IsRecording => _isRecording;
     public int FrameCount => _frames.Count;
@@ -42,7 +44,7 @@ public sealed class GifRecorderService : IDisposable
         ? DateTime.Now - _recordingStartTime
         : TimeSpan.Zero;
 
-    public GifRecorderService(int fps = 30, GifQualityPreset quality = GifQualityPreset.SkipFrames)
+    public GifRecorderService(int fps = 30, GifQualityPreset quality = GifQualityPreset.SkipFrames, int maxDurationSeconds = 60)
     {
         _targetFps = fps switch
         {
@@ -52,6 +54,7 @@ public sealed class GifRecorderService : IDisposable
         };
         _frameDelayMs = 1000 / _targetFps;
         _quality = quality;
+        _maxDurationSeconds = maxDurationSeconds > 0 ? maxDurationSeconds : 60;
 
         // Configure based on quality preset
         (_resolutionScale, _colorDepth, _skipDuplicates, _duplicateThreshold) = quality switch
@@ -66,6 +69,8 @@ public sealed class GifRecorderService : IDisposable
         _captureTimer.Elapsed += CaptureTimer_Elapsed;
         _captureTimer.AutoReset = true;
     }
+
+    public int MaxDurationSeconds => _maxDurationSeconds;
 
     /// <summary>
     /// Start recording the specified region
@@ -116,6 +121,15 @@ public sealed class GifRecorderService : IDisposable
     private void CaptureTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
         if (!_isRecording) return;
+
+        // Check max duration limit
+        if (RecordingDuration.TotalSeconds >= _maxDurationSeconds)
+        {
+            _isRecording = false;
+            _captureTimer.Stop();
+            MaxDurationReached?.Invoke();
+            return;
+        }
 
         try
         {
