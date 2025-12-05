@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="snipit_logo.png" alt="Snipit Logo" width="200">
+</p>
+
 # Snipit
 
 가볍고 포터블한 Windows 화면 캡쳐 도구
