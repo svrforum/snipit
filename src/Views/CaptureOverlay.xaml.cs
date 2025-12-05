@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using SnipIt.Services;
+using SnipIt.Utils;
 using Rectangle = System.Windows.Shapes.Rectangle;
 
 namespace SnipIt.Views;
@@ -384,6 +385,9 @@ public partial class CaptureOverlay : Window
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        // Arrow keys for pixel-level cursor control
+        int moveAmount = Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift) ? 10 : 1;
+
         switch (e.Key)
         {
             case Key.Escape:
@@ -401,6 +405,78 @@ public partial class CaptureOverlay : Window
                     }
                 }
                 break;
+
+            case Key.Left:
+                MoveCursor(-moveAmount, 0);
+                e.Handled = true;
+                break;
+
+            case Key.Right:
+                MoveCursor(moveAmount, 0);
+                e.Handled = true;
+                break;
+
+            case Key.Up:
+                MoveCursor(0, -moveAmount);
+                e.Handled = true;
+                break;
+
+            case Key.Down:
+                MoveCursor(0, moveAmount);
+                e.Handled = true;
+                break;
+
+            case Key.Space:
+                // Space to start/confirm selection at current position
+                if (!_isSelecting)
+                {
+                    // Start selection
+                    _startPoint = _currentPoint;
+                    _isSelecting = true;
+                    OverlayCanvas.CaptureMouse();
+                }
+                else
+                {
+                    // Confirm selection
+                    _isSelecting = false;
+                    OverlayCanvas.ReleaseMouseCapture();
+                    var rect = GetSelectionRect();
+                    if (rect.Width > 5 && rect.Height > 5)
+                    {
+                        CaptureSelection(rect);
+                    }
+                }
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void MoveCursor(int deltaX, int deltaY)
+    {
+        if (NativeMethods.GetCursorPos(out NativeMethods.POINT currentPos))
+        {
+            int newX = currentPos.X + deltaX;
+            int newY = currentPos.Y + deltaY;
+
+            // Clamp to screen bounds
+            newX = Math.Max(0, Math.Min(newX, (int)SystemParameters.VirtualScreenWidth - 1));
+            newY = Math.Max(0, Math.Min(newY, (int)SystemParameters.VirtualScreenHeight - 1));
+
+            NativeMethods.SetCursorPos(newX, newY);
+
+            // Update internal position and UI
+            _currentPoint = new System.Windows.Point(
+                newX - SystemParameters.VirtualScreenLeft,
+                newY - SystemParameters.VirtualScreenTop);
+
+            UpdateInfoPanel(_currentPoint);
+            UpdateMagnifier(_currentPoint);
+
+            if (_isSelecting)
+            {
+                var rect = GetSelectionRect();
+                UpdateOverlays(rect);
+            }
         }
     }
 

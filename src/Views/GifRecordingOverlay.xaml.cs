@@ -11,6 +11,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using SnipIt.Models;
 using SnipIt.Services;
+using SnipIt.Utils;
 using Rectangle = System.Windows.Shapes.Rectangle;
 
 namespace SnipIt.Views;
@@ -567,6 +568,70 @@ public partial class GifRecordingOverlay : Window
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        // Arrow keys for pixel-level cursor control (only during selection)
+        if (_state == RecordingState.Selecting)
+        {
+            int moveAmount = Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift) ? 10 : 1;
+
+            switch (e.Key)
+            {
+                case Key.Left:
+                    MoveCursor(-moveAmount, 0);
+                    e.Handled = true;
+                    return;
+
+                case Key.Right:
+                    MoveCursor(moveAmount, 0);
+                    e.Handled = true;
+                    return;
+
+                case Key.Up:
+                    MoveCursor(0, -moveAmount);
+                    e.Handled = true;
+                    return;
+
+                case Key.Down:
+                    MoveCursor(0, moveAmount);
+                    e.Handled = true;
+                    return;
+
+                case Key.Space:
+                    // Space to start/confirm selection at current position
+                    if (!_isSelecting)
+                    {
+                        _startPoint = _currentPoint;
+                        _isSelecting = true;
+                        OverlayCanvas.CaptureMouse();
+                    }
+                    else
+                    {
+                        _isSelecting = false;
+                        OverlayCanvas.ReleaseMouseCapture();
+                        var rect = GetSelectionRect();
+                        if (rect.Width > 5 && rect.Height > 5)
+                        {
+                            _selectedRegion = rect;
+                            StartCountdown();
+                        }
+                    }
+                    e.Handled = true;
+                    return;
+
+                case Key.Enter:
+                    if (_isSelecting || (_selectionRect?.Visibility == Visibility.Visible))
+                    {
+                        var rect = GetSelectionRect();
+                        if (rect.Width > 5 && rect.Height > 5)
+                        {
+                            _selectedRegion = rect;
+                            StartCountdown();
+                        }
+                    }
+                    e.Handled = true;
+                    return;
+            }
+        }
+
         if (e.Key == Key.Escape)
         {
             switch (_state)
@@ -583,6 +648,35 @@ public partial class GifRecordingOverlay : Window
                 case RecordingState.Recording:
                     StopRecording();
                     break;
+            }
+        }
+    }
+
+    private void MoveCursor(int deltaX, int deltaY)
+    {
+        if (NativeMethods.GetCursorPos(out NativeMethods.POINT currentPos))
+        {
+            int newX = currentPos.X + deltaX;
+            int newY = currentPos.Y + deltaY;
+
+            // Clamp to screen bounds
+            newX = Math.Max(0, Math.Min(newX, (int)SystemParameters.VirtualScreenWidth - 1));
+            newY = Math.Max(0, Math.Min(newY, (int)SystemParameters.VirtualScreenHeight - 1));
+
+            NativeMethods.SetCursorPos(newX, newY);
+
+            // Update internal position and UI
+            _currentPoint = new System.Windows.Point(
+                newX - SystemParameters.VirtualScreenLeft,
+                newY - SystemParameters.VirtualScreenTop);
+
+            UpdateInfoPanel(_currentPoint);
+            UpdateMagnifier(_currentPoint);
+
+            if (_isSelecting)
+            {
+                var rect = GetSelectionRect();
+                UpdateOverlays(rect);
             }
         }
     }
