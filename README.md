@@ -1,4 +1,4 @@
-# WinCapture
+# Snipit
 
 가볍고 포터블한 Windows 화면 캡쳐 도구
 
