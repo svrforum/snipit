@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="snipit_logo.png" alt="Snipit Logo" width="200">
+  <img src="snipit_logo.png" alt="Snipit Logo" width="100%">
 </p>
 
 # Snipit
@@ -11,7 +11,7 @@
 ### 화면 캡쳐
 - **전체 화면 캡쳐** - `PrintScreen`
 - **활성 창 캡쳐** - `Alt + PrintScreen`
-- **영역 선택 캡쳐** - `Ctrl + Shift + A`
+- **영역 선택 캡쳐** - `Ctrl + Shift + C`
 - 다중 모니터 지원
 - 커서 포함 옵션
 
@@ -71,15 +71,35 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 ## 단축키
 
+### 글로벌 (어디서든)
 | 동작 | 단축키 |
 |------|--------|
 | 전체 화면 캡쳐 | `PrintScreen` |
 | 활성 창 캡쳐 | `Alt + PrintScreen` |
-| 영역 선택 캡쳐 | `Ctrl + Shift + A` |
-| 저장 (편집기) | `Ctrl + S` |
-| 클립보드 복사 (편집기) | `Ctrl + C` |
-| 실행 취소 (편집기) | `Ctrl + Z` |
-| 다시 실행 (편집기) | `Ctrl + Y` |
+| 영역 선택 캡쳐 | `Ctrl + Shift + C` |
+
+### 편집기 - 파일/편집
+| 동작 | 단축키 |
+|------|--------|
+| 저장 | `Ctrl + S` |
+| 클립보드 복사 | `Ctrl + C` |
+| 실행 취소 | `Ctrl + Z` |
+| 다시 실행 | `Ctrl + Y` |
+| 줌 인/아웃 | `Ctrl + 마우스휠` |
+
+### 편집기 - 도구 선택
+| 도구 | 단축키 |
+|------|--------|
+| 선택 | `V` |
+| 펜 | `P` |
+| 화살표 | `A` |
+| 직선 | `L` |
+| 사각형 | `R` |
+| 타원 | `E` |
+| 텍스트 | `T` |
+| 형광펜 | `H` |
+| 모자이크 | `M` |
+| 취소/선택 해제 | `Esc` |
 
 ## 프로젝트 구조
 
