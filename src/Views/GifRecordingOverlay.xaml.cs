@@ -461,9 +461,10 @@ public partial class GifRecordingOverlay : Window
         _borderWindow.SetRegion(recordRegion);
         _borderWindow.Show();
 
-        // Get FPS from settings
+        // Get FPS and quality from settings
         var fps = AppSettingsConfig.Instance.GifFps;
-        _recorder = new GifRecorderService(fps);
+        var quality = AppSettingsConfig.Instance.GifQuality;
+        _recorder = new GifRecorderService(fps, quality);
         _recorder.RecordingProgress += OnRecordingProgress;
         _recorder.RecordingCompleted += OnRecordingCompleted;
         _recorder.RecordingError += OnRecordingError;

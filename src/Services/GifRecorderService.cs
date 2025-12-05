@@ -1,24 +1,34 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
 using AnimatedGif;
+using SnipIt.Models;
 
 namespace SnipIt.Services;
 
 /// <summary>
-/// Service for recording screen region as animated GIF
+/// Service for recording screen region as animated GIF with optimization
 /// </summary>
 public sealed class GifRecorderService : IDisposable
 {
-    private readonly List<Bitmap> _frames = [];
+    private readonly List<(Bitmap frame, int duration)> _frames = [];
     private readonly System.Timers.Timer _captureTimer;
     private Rectangle _captureRegion;
     private bool _isRecording;
     private DateTime _recordingStartTime;
+    private Bitmap? _previousFrame;
+    private int _duplicateFrameCount;
 
-    // Configurable FPS (15, 30, or 60)
+    // Configurable settings
     private readonly int _targetFps;
     private readonly int _frameDelayMs;
+    private readonly GifQualityPreset _quality;
+    private readonly double _resolutionScale;
+    private readonly int _colorDepth;
+    private readonly bool _skipDuplicates;
+    private readonly double _duplicateThreshold;
 
     public event Action<TimeSpan>? RecordingProgress;
     public event Action<string>? RecordingCompleted;
@@ -27,11 +37,12 @@ public sealed class GifRecorderService : IDisposable
     public bool IsRecording => _isRecording;
     public int FrameCount => _frames.Count;
     public int TargetFps => _targetFps;
+    public int SkippedFrames => _duplicateFrameCount;
     public TimeSpan RecordingDuration => _isRecording
         ? DateTime.Now - _recordingStartTime
         : TimeSpan.Zero;
 
-    public GifRecorderService(int fps = 30)
+    public GifRecorderService(int fps = 30, GifQualityPreset quality = GifQualityPreset.SkipFrames)
     {
         _targetFps = fps switch
         {
@@ -40,6 +51,16 @@ public sealed class GifRecorderService : IDisposable
             _ => 30
         };
         _frameDelayMs = 1000 / _targetFps;
+        _quality = quality;
+
+        // Configure based on quality preset
+        (_resolutionScale, _colorDepth, _skipDuplicates, _duplicateThreshold) = quality switch
+        {
+            GifQualityPreset.Original => (1.0, 256, false, 0.0),              // 원본: 100%, 스킵 안함
+            GifQualityPreset.SkipFrames => (1.0, 256, true, 0.01),            // 중복 스킵: 100%, 1% 이하 스킵
+            GifQualityPreset.SkipFramesHalfSize => (0.5, 256, true, 0.01),    // 중복 스킵+50%: 50%, 1% 이하 스킵
+            _ => (1.0, 256, true, 0.01)
+        };
 
         _captureTimer = new System.Timers.Timer(_frameDelayMs);
         _captureTimer.Elapsed += CaptureTimer_Elapsed;
@@ -55,6 +76,9 @@ public sealed class GifRecorderService : IDisposable
 
         _captureRegion = region;
         _frames.Clear();
+        _previousFrame?.Dispose();
+        _previousFrame = null;
+        _duplicateFrameCount = 0;
         _isRecording = true;
         _recordingStartTime = DateTime.Now;
         _captureTimer.Start();
@@ -98,10 +122,7 @@ public sealed class GifRecorderService : IDisposable
             var frame = CaptureFrame();
             if (frame != null)
             {
-                lock (_frames)
-                {
-                    _frames.Add(frame);
-                }
+                ProcessFrame(frame);
                 RecordingProgress?.Invoke(RecordingDuration);
             }
         }
@@ -111,12 +132,104 @@ public sealed class GifRecorderService : IDisposable
         }
     }
 
+    private void ProcessFrame(Bitmap frame)
+    {
+        lock (_frames)
+        {
+            // Check for duplicate frame
+            if (_skipDuplicates && _previousFrame != null)
+            {
+                double difference = CalculateFrameDifference(frame, _previousFrame);
+
+                if (difference < _duplicateThreshold)
+                {
+                    // Frame is similar to previous, extend previous frame duration
+                    _duplicateFrameCount++;
+                    if (_frames.Count > 0)
+                    {
+                        var last = _frames[^1];
+                        _frames[^1] = (last.frame, last.duration + _frameDelayMs);
+                    }
+                    frame.Dispose();
+                    return;
+                }
+            }
+
+            // Store frame with duration
+            _frames.Add((frame, _frameDelayMs));
+
+            // Update previous frame reference
+            _previousFrame?.Dispose();
+            _previousFrame = (Bitmap)frame.Clone();
+        }
+    }
+
+    /// <summary>
+    /// Calculate difference between two frames (0.0 = identical, 1.0 = completely different)
+    /// </summary>
+    private static double CalculateFrameDifference(Bitmap frame1, Bitmap frame2)
+    {
+        if (frame1.Width != frame2.Width || frame1.Height != frame2.Height)
+            return 1.0;
+
+        // Sample pixels for performance (check every 10th pixel)
+        int sampleStep = 10;
+        int totalSamples = 0;
+        long totalDifference = 0;
+
+        var rect = new Rectangle(0, 0, frame1.Width, frame1.Height);
+
+        BitmapData? data1 = null;
+        BitmapData? data2 = null;
+
+        try
+        {
+            data1 = frame1.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+            data2 = frame2.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+
+            int bytesPerPixel = 3;
+            int stride = data1.Stride;
+
+            unsafe
+            {
+                byte* ptr1 = (byte*)data1.Scan0;
+                byte* ptr2 = (byte*)data2.Scan0;
+
+                for (int y = 0; y < frame1.Height; y += sampleStep)
+                {
+                    for (int x = 0; x < frame1.Width; x += sampleStep)
+                    {
+                        int offset = y * stride + x * bytesPerPixel;
+
+                        int diff = Math.Abs(ptr1[offset] - ptr2[offset]) +
+                                   Math.Abs(ptr1[offset + 1] - ptr2[offset + 1]) +
+                                   Math.Abs(ptr1[offset + 2] - ptr2[offset + 2]);
+
+                        totalDifference += diff;
+                        totalSamples++;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            if (data1 != null) frame1.UnlockBits(data1);
+            if (data2 != null) frame2.UnlockBits(data2);
+        }
+
+        if (totalSamples == 0) return 0;
+
+        // Normalize: max difference per pixel is 255*3 = 765
+        return totalDifference / (totalSamples * 765.0);
+    }
+
     private Bitmap? CaptureFrame()
     {
         try
         {
-            var bitmap = new Bitmap(_captureRegion.Width, _captureRegion.Height, PixelFormat.Format24bppRgb);
-            using (var graphics = Graphics.FromImage(bitmap))
+            // Capture at original resolution
+            using var originalBitmap = new Bitmap(_captureRegion.Width, _captureRegion.Height, PixelFormat.Format24bppRgb);
+            using (var graphics = Graphics.FromImage(originalBitmap))
             {
                 graphics.CopyFromScreen(
                     _captureRegion.Left,
@@ -125,7 +238,27 @@ public sealed class GifRecorderService : IDisposable
                     _captureRegion.Size,
                     CopyPixelOperation.SourceCopy);
             }
-            return bitmap;
+
+            // If no scaling needed, return clone
+            if (_resolutionScale >= 1.0)
+            {
+                return (Bitmap)originalBitmap.Clone();
+            }
+
+            // Scale down for smaller file size
+            int scaledWidth = (int)(_captureRegion.Width * _resolutionScale);
+            int scaledHeight = (int)(_captureRegion.Height * _resolutionScale);
+
+            var scaledBitmap = new Bitmap(scaledWidth, scaledHeight, PixelFormat.Format24bppRgb);
+            using (var graphics = Graphics.FromImage(scaledBitmap))
+            {
+                graphics.InterpolationMode = InterpolationMode.Bilinear;
+                graphics.CompositingQuality = CompositingQuality.HighSpeed;
+                graphics.SmoothingMode = SmoothingMode.HighSpeed;
+                graphics.DrawImage(originalBitmap, 0, 0, scaledWidth, scaledHeight);
+            }
+
+            return scaledBitmap;
         }
         catch
         {
@@ -166,16 +299,15 @@ public sealed class GifRecorderService : IDisposable
                 return null;
             }
 
-            // Create animated GIF
-            using (var gif = AnimatedGif.AnimatedGif.Create(finalPath, _frameDelayMs))
+            // Create animated GIF with variable frame durations
+            lock (_frames)
             {
-                lock (_frames)
+                using var gif = AnimatedGif.AnimatedGif.Create(finalPath, _frameDelayMs);
+
+                foreach (var (frame, duration) in _frames)
                 {
-                    foreach (var frame in _frames)
-                    {
-                        // Convert to Image for AnimatedGif library
-                        gif.AddFrame(frame, delay: -1, quality: GifQuality.Bit8);
-                    }
+                    // Add frame with its specific duration (256 colors)
+                    gif.AddFrame(frame, delay: duration, quality: GifQuality.Bit8);
                 }
             }
 
@@ -195,12 +327,14 @@ public sealed class GifRecorderService : IDisposable
     {
         lock (_frames)
         {
-            foreach (var frame in _frames)
+            foreach (var (frame, _) in _frames)
             {
                 frame.Dispose();
             }
             _frames.Clear();
         }
+        _previousFrame?.Dispose();
+        _previousFrame = null;
     }
 
     public void Dispose()

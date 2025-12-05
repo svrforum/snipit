@@ -813,7 +813,7 @@ public partial class EditorWindow : Window
         {
             Filter = "PNG Image|*.png|JPEG Image|*.jpg|BMP Image|*.bmp|GIF Image|*.gif",
             DefaultExt = ".png",
-            FileName = $"capture_{DateTime.Now:yyyyMMdd_HHmmss}"
+            FileName = $"SnipIt_Capture_{DateTime.Now:yyyyMMdd_HHmmss}"
         };
 
         if (dialog.ShowDialog() == true)

@@ -53,6 +53,13 @@ public partial class SettingsWindow : Window
             _ => 1 // 30fps default
         };
 
+        CmbGifQuality.SelectedIndex = _config.GifQuality switch
+        {
+            GifQualityPreset.Original => 0,
+            GifQualityPreset.SkipFramesHalfSize => 2,
+            _ => 1 // SkipFrames default
+        };
+
         // Hotkeys
         HotkeyFullScreen.HotkeyConfig = _config.FullScreenHotkey;
         HotkeyActiveWindow.HotkeyConfig = _config.ActiveWindowHotkey;
@@ -122,6 +129,14 @@ public partial class SettingsWindow : Window
             "15" => 15,
             "60" => 60,
             _ => 30
+        };
+
+        var selectedQuality = (CmbGifQuality.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        _config.GifQuality = selectedQuality switch
+        {
+            "Original" => GifQualityPreset.Original,
+            "SkipFramesHalfSize" => GifQualityPreset.SkipFramesHalfSize,
+            _ => GifQualityPreset.SkipFrames
         };
 
         // Hotkeys

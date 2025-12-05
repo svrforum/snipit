@@ -6,6 +6,27 @@ using SnipIt.Services;
 namespace SnipIt.Models;
 
 /// <summary>
+/// GIF recording quality preset
+/// </summary>
+public enum GifQualityPreset
+{
+    /// <summary>
+    /// 원본: 모든 프레임 저장 (용량 큼)
+    /// </summary>
+    Original,
+
+    /// <summary>
+    /// 최적화: 중복 프레임 스킵 (기본값)
+    /// </summary>
+    SkipFrames,
+
+    /// <summary>
+    /// 최적화+: 중복 프레임 스킵 + 50% 해상도
+    /// </summary>
+    SkipFramesHalfSize
+}
+
+/// <summary>
 /// Hotkey configuration using C# 12 primary constructor
 /// </summary>
 public sealed class HotkeyConfig
@@ -94,6 +115,7 @@ public sealed class AppSettingsConfig
 
     // GIF settings
     public int GifFps { get; set; } = 30; // 15, 30, or 60
+    public GifQualityPreset GifQuality { get; set; } = GifQualityPreset.SkipFrames; // 기본값: 중복 프레임 스킵
 
     // Hotkey settings with collection expression
     public HotkeyConfig FullScreenHotkey { get; set; } = new(ModifierKeys.None, System.Windows.Forms.Keys.PrintScreen);
