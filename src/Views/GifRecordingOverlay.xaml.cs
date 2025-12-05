@@ -203,18 +203,24 @@ public partial class GifRecordingOverlay : Window
     {
         _state = RecordingState.Countdown;
 
-        // Hide selection UI
+        // Hide selection UI and make window transparent for click-through
         SelectionHelpPanel.Visibility = Visibility.Collapsed;
         InfoPanel.Visibility = Visibility.Collapsed;
-        OverlayCanvas.Background = System.Windows.Media.Brushes.Transparent;
+        BackgroundImage.Visibility = Visibility.Collapsed;
+        OverlayCanvas.Visibility = Visibility.Collapsed;
+        Background = System.Windows.Media.Brushes.Transparent;
 
-        // Clear overlay rectangles
-        _topOverlay!.Fill = System.Windows.Media.Brushes.Transparent;
-        _bottomOverlay!.Fill = System.Windows.Media.Brushes.Transparent;
-        _leftOverlay!.Fill = System.Windows.Media.Brushes.Transparent;
-        _rightOverlay!.Fill = System.Windows.Media.Brushes.Transparent;
+        // Show recording border to indicate selected region
+        RecordingBorder.Visibility = Visibility.Visible;
+        RecordingBorder.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7)); // Yellow during countdown
+        RecordingBorder.Margin = new Thickness(
+            _selectedRegion.Left - 3,
+            _selectedRegion.Top - 3,
+            0, 0);
+        RecordingBorder.Width = _selectedRegion.Width + 6;
+        RecordingBorder.Height = _selectedRegion.Height + 6;
 
-        // Show countdown
+        // Show countdown banner at top
         CountdownPanel.Visibility = Visibility.Visible;
         _countdownValue = 3;
         CountdownText.Text = _countdownValue.ToString();
@@ -247,22 +253,8 @@ public partial class GifRecordingOverlay : Window
         CountdownPanel.Visibility = Visibility.Collapsed;
         RecordingPanel.Visibility = Visibility.Visible;
 
-        // Hide background image
-        BackgroundImage.Visibility = Visibility.Collapsed;
-        _selectionRect!.Visibility = Visibility.Collapsed;
-
-        // Show recording border around selected region
-        RecordingBorder.Visibility = Visibility.Visible;
-        RecordingBorder.Margin = new Thickness(
-            _selectedRegion.Left - 3,
-            _selectedRegion.Top - 3,
-            0, 0);
-        RecordingBorder.Width = _selectedRegion.Width + 6;
-        RecordingBorder.Height = _selectedRegion.Height + 6;
-
-        // Make window click-through except for the recording border
-        Background = System.Windows.Media.Brushes.Transparent;
-        OverlayCanvas.Visibility = Visibility.Collapsed;
+        // Change border color to red (recording)
+        RecordingBorder.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0));
 
         // Start blinking recording dot
         _blinkTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -312,14 +304,7 @@ public partial class GifRecordingOverlay : Window
 
     private void OnRecordingCompleted(string filePath)
     {
-        Dispatcher.Invoke(() =>
-        {
-            System.Windows.MessageBox.Show(
-                $"GIF 저장 완료!\n\n{filePath}\n\n프레임 수: {_recorder?.FrameCount ?? 0}",
-                "녹화 완료",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        });
+        // No popup - just close silently
     }
 
     private void OnRecordingError(string error)
@@ -334,22 +319,32 @@ public partial class GifRecordingOverlay : Window
         });
     }
 
-    private async void StopRecording()
+    private void StopRecording()
     {
         if (_recorder == null) return;
 
         _recordingTimer?.Stop();
         _blinkTimer?.Stop();
 
-        RecordingTimeText.Text = "저장 중...";
-        RecordingDot.Visibility = Visibility.Visible;
-
-        await _recorder.StopRecordingAsync();
-
-        _recorder.Dispose();
+        // Capture recorder reference before closing
+        var recorder = _recorder;
         _recorder = null;
 
+        // Close window immediately
         Close();
+
+        // Save GIF in background
+        Task.Run(async () =>
+        {
+            try
+            {
+                await recorder.StopRecordingAsync();
+            }
+            finally
+            {
+                recorder.Dispose();
+            }
+        });
     }
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
