@@ -25,9 +25,9 @@ public partial class CaptureOverlay : Window
     private Rectangle? _leftOverlay;
     private Rectangle? _rightOverlay;
 
-    // Throttle magnifier updates to reduce GC pressure
+    // Throttle magnifier updates to reduce GC pressure (synced to display refresh rate)
     private DateTime _lastMagnifierUpdate = DateTime.MinValue;
-    private const int MagnifierUpdateIntervalMs = 33; // ~30fps
+    private readonly int _magnifierUpdateIntervalMs = NativeMethods.GetFrameIntervalMs();
 
     public Bitmap? CapturedImage { get; private set; }
 
@@ -259,9 +259,9 @@ public partial class CaptureOverlay : Window
 
         UpdateInfoPanel(_currentPoint);
 
-        // Throttle magnifier updates to ~30fps to reduce GC pressure
+        // Throttle magnifier updates synced to display refresh rate
         var now = DateTime.Now;
-        if ((now - _lastMagnifierUpdate).TotalMilliseconds >= MagnifierUpdateIntervalMs)
+        if ((now - _lastMagnifierUpdate).TotalMilliseconds >= _magnifierUpdateIntervalMs)
         {
             UpdateMagnifier(_currentPoint);
             _lastMagnifierUpdate = now;

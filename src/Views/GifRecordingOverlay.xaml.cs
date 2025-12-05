@@ -44,9 +44,9 @@ public partial class GifRecordingOverlay : Window
     private RecordingControlWindow? _controlWindow;
     private RecordingBorderWindow? _borderWindow;
 
-    // Throttle magnifier updates to reduce GC pressure
+    // Throttle magnifier updates to reduce GC pressure (synced to display refresh rate)
     private DateTime _lastMagnifierUpdate = DateTime.MinValue;
-    private const int MagnifierUpdateIntervalMs = 33; // ~30fps
+    private readonly int _magnifierUpdateIntervalMs = NativeMethods.GetFrameIntervalMs();
 
     public GifRecordingOverlay()
     {
@@ -274,9 +274,9 @@ public partial class GifRecordingOverlay : Window
         _currentPoint = e.GetPosition(OverlayCanvas);
         UpdateInfoPanel(_currentPoint);
 
-        // Throttle magnifier updates to ~30fps to reduce GC pressure
+        // Throttle magnifier updates synced to display refresh rate
         var now = DateTime.Now;
-        if ((now - _lastMagnifierUpdate).TotalMilliseconds >= MagnifierUpdateIntervalMs)
+        if ((now - _lastMagnifierUpdate).TotalMilliseconds >= _magnifierUpdateIntervalMs)
         {
             UpdateMagnifier(_currentPoint);
             _lastMagnifierUpdate = now;

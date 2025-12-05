@@ -276,6 +276,77 @@ public static partial class NativeMethods
         public IntPtr hbmMask;
         public IntPtr hbmColor;
     }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct DEVMODE
+    {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmDeviceName;
+        public short dmSpecVersion;
+        public short dmDriverVersion;
+        public short dmSize;
+        public short dmDriverExtra;
+        public int dmFields;
+        public int dmPositionX;
+        public int dmPositionY;
+        public int dmDisplayOrientation;
+        public int dmDisplayFixedOutput;
+        public short dmColor;
+        public short dmDuplex;
+        public short dmYResolution;
+        public short dmTTOption;
+        public short dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmFormName;
+        public short dmLogPixels;
+        public int dmBitsPerPel;
+        public int dmPelsWidth;
+        public int dmPelsHeight;
+        public int dmDisplayFlags;
+        public int dmDisplayFrequency;
+        public int dmICMMethod;
+        public int dmICMIntent;
+        public int dmMediaType;
+        public int dmDitherType;
+        public int dmReserved1;
+        public int dmReserved2;
+        public int dmPanningWidth;
+        public int dmPanningHeight;
+    }
+    #endregion
+
+    #region Display Settings
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    public static extern bool EnumDisplaySettings(string? deviceName, int modeNum, ref DEVMODE devMode);
+
+    public const int ENUM_CURRENT_SETTINGS = -1;
+
+    /// <summary>
+    /// Get the current display refresh rate in Hz
+    /// </summary>
+    public static int GetDisplayRefreshRate()
+    {
+        var devMode = new DEVMODE();
+        devMode.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+
+        if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
+        {
+            return devMode.dmDisplayFrequency;
+        }
+
+        return 60; // Default fallback
+    }
+
+    /// <summary>
+    /// Get the frame interval in milliseconds based on display refresh rate
+    /// </summary>
+    public static int GetFrameIntervalMs()
+    {
+        int refreshRate = GetDisplayRefreshRate();
+        // Clamp to reasonable values (30-240Hz)
+        refreshRate = Math.Max(30, Math.Min(refreshRate, 240));
+        return 1000 / refreshRate;
+    }
     #endregion
 }
 
