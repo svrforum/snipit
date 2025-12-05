@@ -101,6 +101,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 | 텍스트 | `T` |
 | 형광펜 | `H` |
 | 모자이크 | `M` |
+| 자르기 | `C` |
 | 취소/선택 해제 | `Esc` |
 
 ## 프로젝트 구조

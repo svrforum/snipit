@@ -77,6 +77,7 @@ public partial class EditorWindow : Window
             LoadImage(_originalBitmap);
             UpdateImageSizeText();
             LoadHistory();
+            RestoreLastTool();
 
             // Subscribe to history changes
             CaptureHistoryService.Instance.HistoryChanged += OnHistoryChanged;
