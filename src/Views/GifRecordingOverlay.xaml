@@ -29,7 +29,8 @@
                 Padding="10,6"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
-                Margin="10">
+                Margin="10"
+                IsHitTestVisible="False">
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="SizeText" Foreground="White" FontFamily="Consolas" FontSize="12"/>
             </StackPanel>
@@ -37,7 +38,8 @@
 
         <!-- Help text (selection phase) -->
         <Border x:Name="SelectionHelpPanel" Background="#AA000000" CornerRadius="4" Padding="12,8"
-                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30">
+                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30"
+                IsHitTestVisible="False">
             <TextBlock Foreground="White" FontSize="12" TextAlignment="Center">
                 <Run Text="GIF 녹화할 영역을 선택하세요"/>
                 <LineBreak/>
@@ -52,7 +54,8 @@
                 CornerRadius="0,0,12,12"
                 Padding="30,15"
                 HorizontalAlignment="Left"
-                VerticalAlignment="Top">
+                VerticalAlignment="Top"
+                IsHitTestVisible="False">
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="CountdownText"
                            Text="3"
@@ -76,7 +79,8 @@
                 Padding="15,10"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
-                Margin="0,20,0,0">
+                Margin="0,20,0,0"
+                IsHitTestVisible="False">
             <StackPanel Orientation="Horizontal">
                 <Ellipse x:Name="RecordingDot" Width="12" Height="12" Fill="Red" Margin="0,0,10,0"/>
                 <TextBlock x:Name="RecordingTimeText"
@@ -115,7 +119,8 @@
                 Width="120" Height="120"
                 BorderBrush="#FF5252" BorderThickness="2"
                 Visibility="Collapsed"
-                HorizontalAlignment="Left" VerticalAlignment="Top">
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                IsHitTestVisible="False">
             <Grid>
                 <Image x:Name="MagnifierImage" Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
                 <Line X1="60" Y1="0" X2="60" Y2="120" Stroke="#80FFFFFF" StrokeThickness="1"/>
