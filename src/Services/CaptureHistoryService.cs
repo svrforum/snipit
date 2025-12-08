@@ -145,8 +145,19 @@ public sealed class CaptureHistoryService : IDisposable
         if (!File.Exists(item.ImagePath))
             return null;
 
-        using var stream = new FileStream(item.ImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return new Bitmap(stream);
+        // GDI+ Bitmap keeps a reference to the underlying stream.
+        // To create a fully independent bitmap that survives stream disposal,
+        // we must clone it to a new bitmap with explicit pixel format.
+        using var fileStream = new FileStream(item.ImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var tempBitmap = new Bitmap(fileStream);
+
+        // Create a new independent bitmap by drawing the original onto it
+        var result = new Bitmap(tempBitmap.Width, tempBitmap.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(result))
+        {
+            g.DrawImage(tempBitmap, 0, 0, tempBitmap.Width, tempBitmap.Height);
+        }
+        return result;
     }
 
     public async Task<Bitmap?> LoadImageAsync(CaptureHistoryItem item, CancellationToken cancellationToken = default)
@@ -156,8 +167,16 @@ public sealed class CaptureHistoryService : IDisposable
 
         return await Task.Run(() =>
         {
-            using var stream = new FileStream(item.ImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return new Bitmap(stream);
+            // Create a fully independent bitmap that doesn't rely on stream
+            using var fileStream = new FileStream(item.ImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var tempBitmap = new Bitmap(fileStream);
+
+            var result = new Bitmap(tempBitmap.Width, tempBitmap.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(result))
+            {
+                g.DrawImage(tempBitmap, 0, 0, tempBitmap.Width, tempBitmap.Height);
+            }
+            return result;
         }, cancellationToken);
     }
 
