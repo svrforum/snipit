@@ -56,6 +56,14 @@ public partial class EditorWindow : Window
     private const double ZoomMax = 5.0;
     private const double ZoomStep = 0.1;
 
+    // OCR overlay mode
+    private bool _isOcrMode = false;
+    private OcrResultWithRegions? _ocrResult;
+    private List<Border> _ocrWordBorders = [];
+    private Point _ocrSelectionStart;
+    private bool _isOcrSelecting = false;
+    private HashSet<OcrWord> _selectedOcrWords = [];
+
     public EditorWindow(Bitmap bitmap)
     {
         _originalBitmap = bitmap;
@@ -133,6 +141,23 @@ public partial class EditorWindow : Window
         // Skip if typing in a textbox
         if (e.OriginalSource is System.Windows.Controls.TextBox)
             return;
+
+        // OCR mode handling
+        if (_isOcrMode)
+        {
+            if (e.Key == Key.Escape)
+            {
+                ExitOcrMode();
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.C && Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Control)
+            {
+                CopySelectedOcrText();
+                e.Handled = true;
+                return;
+            }
+        }
 
         var modifiers = Keyboard.Modifiers;
 
@@ -985,6 +1010,372 @@ public partial class EditorWindow : Window
         var helpWindow = new HelpWindow();
         helpWindow.Owner = this;
         helpWindow.ShowDialog();
+    }
+
+    private async void BtnOcr_Click(object sender, RoutedEventArgs e)
+    {
+        // Toggle OCR mode
+        if (_isOcrMode)
+        {
+            ExitOcrMode();
+            return;
+        }
+
+        try
+        {
+            BtnOcr.IsEnabled = false;
+            StatusText.Text = "텍스트 인식 중...";
+
+            _ocrResult = await OcrService.ExtractTextWithRegionsAsync(_originalBitmap);
+
+            if (_ocrResult.Lines.Count == 0)
+            {
+                StatusText.Text = "인식된 텍스트가 없습니다";
+                return;
+            }
+
+            EnterOcrMode();
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"OCR 오류: {ex.Message}";
+        }
+        finally
+        {
+            BtnOcr.IsEnabled = true;
+        }
+    }
+
+    // OCR overlay colors
+    private static readonly Color OcrNormalBg = Color.FromArgb(60, 255, 213, 79);      // Yellow background
+    private static readonly Color OcrNormalBorder = Color.FromArgb(200, 255, 193, 7);  // Yellow border
+    private static readonly Color OcrHoverBg = Color.FromArgb(100, 255, 193, 7);       // Hover yellow
+    private static readonly Color OcrSelectedBg = Color.FromArgb(150, 49, 130, 246);   // Selected blue
+    private static readonly Color OcrSelectedBorder = Color.FromArgb(255, 49, 130, 246); // Selected blue border
+
+    private void EnterOcrMode()
+    {
+        _isOcrMode = true;
+        _selectedOcrWords.Clear();
+        _ocrWordBorders.Clear();
+
+        // Create overlay borders for each word
+        if (_ocrResult != null)
+        {
+            // Calculate scale factor between bitmap and displayed image
+            double scaleX = DrawingCanvas.Width / _originalBitmap.Width;
+            double scaleY = DrawingCanvas.Height / _originalBitmap.Height;
+
+            foreach (var line in _ocrResult.Lines)
+            {
+                foreach (var word in line.Words)
+                {
+                    // Apply scale to coordinates
+                    double x = word.BoundingRect.X * scaleX;
+                    double y = word.BoundingRect.Y * scaleY;
+                    double width = word.BoundingRect.Width * scaleX;
+                    double height = word.BoundingRect.Height * scaleY;
+
+                    var border = new Border
+                    {
+                        Width = width,
+                        Height = height,
+                        Background = new SolidColorBrush(OcrNormalBg),
+                        BorderBrush = new SolidColorBrush(OcrNormalBorder),
+                        BorderThickness = new Thickness(1),
+                        Cursor = Cursors.Hand,
+                        Tag = word,
+                        SnapsToDevicePixels = true,
+                        UseLayoutRounding = true
+                    };
+
+                    border.MouseLeftButtonDown += OcrWord_MouseLeftButtonDown;
+                    border.MouseEnter += OcrWord_MouseEnter;
+                    border.MouseLeave += OcrWord_MouseLeave;
+
+                    Canvas.SetLeft(border, x);
+                    Canvas.SetTop(border, y);
+                    DrawingCanvas.Children.Add(border);
+                    _ocrWordBorders.Add(border);
+                }
+            }
+        }
+
+        // Update UI
+        StatusText.Text = "텍스트를 클릭하거나 드래그하여 선택하세요 (ESC: 취소, Ctrl+C: 복사)";
+        DrawingCanvas.Cursor = Cursors.IBeam;
+
+        // Add selection rectangle event handlers
+        DrawingCanvas.MouseLeftButtonDown += OcrCanvas_MouseLeftButtonDown;
+        DrawingCanvas.MouseMove += OcrCanvas_MouseMove;
+        DrawingCanvas.MouseLeftButtonUp += OcrCanvas_MouseLeftButtonUp;
+    }
+
+    private void ExitOcrMode()
+    {
+        _isOcrMode = false;
+        _ocrResult = null;
+        _selectedOcrWords.Clear();
+
+        // Remove OCR borders
+        foreach (var border in _ocrWordBorders)
+        {
+            DrawingCanvas.Children.Remove(border);
+        }
+        _ocrWordBorders.Clear();
+
+        // Remove selection rectangle event handlers
+        DrawingCanvas.MouseLeftButtonDown -= OcrCanvas_MouseLeftButtonDown;
+        DrawingCanvas.MouseMove -= OcrCanvas_MouseMove;
+        DrawingCanvas.MouseLeftButtonUp -= OcrCanvas_MouseLeftButtonUp;
+
+        // Remove selection rectangle if exists
+        var selRect = DrawingCanvas.Children.OfType<Rectangle>().FirstOrDefault(r => r.Tag as string == "OcrSelection");
+        if (selRect != null)
+            DrawingCanvas.Children.Remove(selRect);
+
+        UpdateCursor();
+        StatusText.Text = "준비됨";
+    }
+
+    private void OcrWord_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Border border && border.Tag is OcrWord word)
+        {
+            if (Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Control)
+            {
+                // Toggle selection with Ctrl
+                if (_selectedOcrWords.Contains(word))
+                {
+                    _selectedOcrWords.Remove(word);
+                    border.Background = new SolidColorBrush(OcrNormalBg);
+                    border.BorderBrush = new SolidColorBrush(OcrNormalBorder);
+                }
+                else
+                {
+                    _selectedOcrWords.Add(word);
+                    border.Background = new SolidColorBrush(OcrSelectedBg);
+                    border.BorderBrush = new SolidColorBrush(OcrSelectedBorder);
+                }
+            }
+            else
+            {
+                // Single selection - clear others first
+                ClearOcrSelection();
+                _selectedOcrWords.Add(word);
+                border.Background = new SolidColorBrush(OcrSelectedBg);
+                border.BorderBrush = new SolidColorBrush(OcrSelectedBorder);
+            }
+
+            // Auto copy on selection
+            CopySelectedOcrText();
+            e.Handled = true;
+        }
+    }
+
+    private void OcrWord_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (sender is Border border && border.Tag is OcrWord word && !_selectedOcrWords.Contains(word))
+        {
+            border.Background = new SolidColorBrush(OcrHoverBg);
+        }
+    }
+
+    private void OcrWord_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (sender is Border border && border.Tag is OcrWord word && !_selectedOcrWords.Contains(word))
+        {
+            border.Background = new SolidColorBrush(OcrNormalBg);
+        }
+    }
+
+    private Rectangle? _ocrSelectionRect;
+
+    private void OcrCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isOcrMode) return;
+
+        // Check if clicking on a word border (handled by OcrWord_MouseLeftButtonDown)
+        if (e.OriginalSource is Border) return;
+
+        _ocrSelectionStart = e.GetPosition(DrawingCanvas);
+        _isOcrSelecting = true;
+
+        // Clear previous selection unless Ctrl is held
+        if (Keyboard.Modifiers != System.Windows.Input.ModifierKeys.Control)
+        {
+            ClearOcrSelection();
+        }
+
+        // Create selection rectangle
+        _ocrSelectionRect = new Rectangle
+        {
+            Stroke = new SolidColorBrush(Color.FromRgb(49, 130, 246)),
+            StrokeThickness = 1,
+            StrokeDashArray = new DoubleCollection { 4, 2 },
+            Fill = new SolidColorBrush(Color.FromArgb(30, 49, 130, 246)),
+            Tag = "OcrSelection"
+        };
+        Canvas.SetLeft(_ocrSelectionRect, _ocrSelectionStart.X);
+        Canvas.SetTop(_ocrSelectionRect, _ocrSelectionStart.Y);
+        DrawingCanvas.Children.Add(_ocrSelectionRect);
+
+        DrawingCanvas.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void OcrCanvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_isOcrMode || !_isOcrSelecting || _ocrSelectionRect == null) return;
+
+        var currentPoint = e.GetPosition(DrawingCanvas);
+
+        double x = Math.Min(_ocrSelectionStart.X, currentPoint.X);
+        double y = Math.Min(_ocrSelectionStart.Y, currentPoint.Y);
+        double width = Math.Abs(currentPoint.X - _ocrSelectionStart.X);
+        double height = Math.Abs(currentPoint.Y - _ocrSelectionStart.Y);
+
+        Canvas.SetLeft(_ocrSelectionRect, x);
+        Canvas.SetTop(_ocrSelectionRect, y);
+        _ocrSelectionRect.Width = width;
+        _ocrSelectionRect.Height = height;
+
+        // Highlight words that intersect with selection
+        var selectionRect = new Rect(x, y, width, height);
+        foreach (var border in _ocrWordBorders)
+        {
+            if (border.Tag is OcrWord word)
+            {
+                var wordRect = new Rect(
+                    word.BoundingRect.X, word.BoundingRect.Y,
+                    word.BoundingRect.Width, word.BoundingRect.Height);
+
+                if (selectionRect.IntersectsWith(wordRect))
+                {
+                    border.Background = new SolidColorBrush(OcrSelectedBg);
+                    border.BorderBrush = new SolidColorBrush(OcrSelectedBorder);
+                }
+                else if (!_selectedOcrWords.Contains(word))
+                {
+                    border.Background = new SolidColorBrush(OcrNormalBg);
+                    border.BorderBrush = new SolidColorBrush(OcrNormalBorder);
+                }
+            }
+        }
+    }
+
+    private void OcrCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isOcrMode || !_isOcrSelecting) return;
+
+        _isOcrSelecting = false;
+        DrawingCanvas.ReleaseMouseCapture();
+
+        if (_ocrSelectionRect != null)
+        {
+            // Select all words that intersect with the selection rectangle
+            double x = Canvas.GetLeft(_ocrSelectionRect);
+            double y = Canvas.GetTop(_ocrSelectionRect);
+            var selectionRect = new Rect(x, y, _ocrSelectionRect.Width, _ocrSelectionRect.Height);
+
+            foreach (var border in _ocrWordBorders)
+            {
+                if (border.Tag is OcrWord word)
+                {
+                    var wordRect = new Rect(
+                        word.BoundingRect.X, word.BoundingRect.Y,
+                        word.BoundingRect.Width, word.BoundingRect.Height);
+
+                    if (selectionRect.IntersectsWith(wordRect))
+                    {
+                        _selectedOcrWords.Add(word);
+                        border.Background = new SolidColorBrush(OcrSelectedBg);
+                        border.BorderBrush = new SolidColorBrush(OcrSelectedBorder);
+                    }
+                }
+            }
+
+            // Remove selection rectangle
+            DrawingCanvas.Children.Remove(_ocrSelectionRect);
+            _ocrSelectionRect = null;
+        }
+
+        // Auto copy on selection
+        if (_selectedOcrWords.Count > 0)
+        {
+            CopySelectedOcrText();
+        }
+        e.Handled = true;
+    }
+
+    private void ClearOcrSelection()
+    {
+        _selectedOcrWords.Clear();
+        foreach (var border in _ocrWordBorders)
+        {
+            border.Background = new SolidColorBrush(OcrNormalBg);
+            border.BorderBrush = new SolidColorBrush(OcrNormalBorder);
+        }
+    }
+
+    private void UpdateOcrStatusText()
+    {
+        if (_selectedOcrWords.Count > 0)
+        {
+            StatusText.Text = $"{_selectedOcrWords.Count}개 단어 선택됨 - Ctrl+C로 복사";
+        }
+        else
+        {
+            StatusText.Text = "텍스트를 클릭하거나 드래그하여 선택하세요 (ESC: 취소)";
+        }
+    }
+
+    private void CopySelectedOcrText()
+    {
+        if (_selectedOcrWords.Count == 0) return;
+
+        // Sort words by position (top to bottom, left to right)
+        var sortedWords = _selectedOcrWords
+            .OrderBy(w => w.BoundingRect.Y)
+            .ThenBy(w => w.BoundingRect.X)
+            .ToList();
+
+        // Group words by line (words with similar Y position)
+        var lines = new List<List<OcrWord>>();
+        List<OcrWord>? currentLine = null;
+        double lastY = -1;
+
+        foreach (var word in sortedWords)
+        {
+            if (currentLine == null || Math.Abs(word.BoundingRect.Y - lastY) > word.BoundingRect.Height * 0.5)
+            {
+                currentLine = [word];
+                lines.Add(currentLine);
+            }
+            else
+            {
+                currentLine.Add(word);
+            }
+            lastY = word.BoundingRect.Y;
+        }
+
+        // Build text with proper spacing
+        var text = new System.Text.StringBuilder();
+        foreach (var line in lines)
+        {
+            var lineWords = line.OrderBy(w => w.BoundingRect.X).Select(w => w.Text);
+            text.AppendLine(string.Join(" ", lineWords));
+        }
+
+        try
+        {
+            System.Windows.Clipboard.SetText(text.ToString().TrimEnd());
+            StatusText.Text = $"텍스트 복사됨 ({_selectedOcrWords.Count}개 단어)";
+        }
+        catch
+        {
+            StatusText.Text = "클립보드 복사 실패 - 다시 시도해주세요";
+        }
     }
 
     #region Text Options

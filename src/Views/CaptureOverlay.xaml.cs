@@ -361,12 +361,15 @@ public partial class CaptureOverlay : Window
     {
         if (_screenBitmap == null) return;
 
-        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
+        // Calculate scale factor: bitmap uses physical pixels, WPF uses logical units
+        double scaleX = (double)_screenBitmap.Width / ActualWidth;
+        double scaleY = (double)_screenBitmap.Height / ActualHeight;
 
-        int x = (int)rect.X;
-        int y = (int)rect.Y;
-        int width = (int)rect.Width;
-        int height = (int)rect.Height;
+        // Convert WPF logical coordinates to bitmap physical pixels
+        int x = (int)(rect.X * scaleX);
+        int y = (int)(rect.Y * scaleY);
+        int width = (int)(rect.Width * scaleX);
+        int height = (int)(rect.Height * scaleY);
 
         // Ensure within bounds
         x = Math.Max(0, Math.Min(x, _screenBitmap.Width - 1));

@@ -28,6 +28,15 @@
                     <Button x:Name="BtnCopy" Style="{StaticResource ToolButtonStyle}" ToolTip="클립보드에 복사 (Ctrl+C)" Click="BtnCopy_Click">
                         <TextBlock Text="📋" FontSize="18"/>
                     </Button>
+                    <Button x:Name="BtnOcr" Style="{StaticResource ToolButtonStyle}" Click="BtnOcr_Click">
+                        <Button.ToolTip>
+                            <StackPanel>
+                                <TextBlock Text="텍스트 인식 (OCR)" FontWeight="SemiBold"/>
+                                <TextBlock Text="이미지에서 텍스트를 추출하여 복사" Foreground="Gray" FontSize="11"/>
+                            </StackPanel>
+                        </Button.ToolTip>
+                        <TextBlock Text="🔤" FontSize="18"/>
+                    </Button>
                 </StackPanel>
 
                 <Border Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"/>

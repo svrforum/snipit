@@ -10,6 +10,50 @@
         ResizeMode="NoResize"
         IsHitTestVisible="False">
 
-    <!-- Orange border to indicate recording area -->
-    <Border BorderBrush="#FF9800" BorderThickness="3" Background="Transparent"/>
+    <!-- Recording area border - outer border only, inner area is transparent
+         Layout: [Border 4px][Gap 2px][Recording Area][Gap 2px][Border 4px]
+         The gap ensures the border is completely outside the recording region -->
+    <Grid x:Name="BorderGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="4" x:Name="TopBorderRow"/>
+            <RowDefinition Height="2" x:Name="TopGapRow"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="2" x:Name="BottomGapRow"/>
+            <RowDefinition Height="4" x:Name="BottomBorderRow"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="4" x:Name="LeftBorderCol"/>
+            <ColumnDefinition Width="2" x:Name="LeftGapCol"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="2" x:Name="RightGapCol"/>
+            <ColumnDefinition Width="4" x:Name="RightBorderCol"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Top border row (row 0) - spans all columns -->
+        <Rectangle Grid.Row="0" Grid.Column="0" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="0" Grid.Column="1" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="0" Grid.Column="2" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="0" Grid.Column="3" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="0" Grid.Column="4" Fill="#FFFF5722"/>
+
+        <!-- Top gap row (row 1) - only left/right borders -->
+        <Rectangle Grid.Row="1" Grid.Column="0" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="1" Grid.Column="4" Fill="#FFFF5722"/>
+
+        <!-- Middle row (row 2) - only left/right borders, center is recording area -->
+        <Rectangle Grid.Row="2" Grid.Column="0" Fill="#FFFF5722"/>
+        <!-- Center cells (col 1,2,3) are transparent (gap + recording area + gap) -->
+        <Rectangle Grid.Row="2" Grid.Column="4" Fill="#FFFF5722"/>
+
+        <!-- Bottom gap row (row 3) - only left/right borders -->
+        <Rectangle Grid.Row="3" Grid.Column="0" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="3" Grid.Column="4" Fill="#FFFF5722"/>
+
+        <!-- Bottom border row (row 4) - spans all columns -->
+        <Rectangle Grid.Row="4" Grid.Column="0" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="4" Grid.Column="1" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="4" Grid.Column="2" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="4" Grid.Column="3" Fill="#FFFF5722"/>
+        <Rectangle Grid.Row="4" Grid.Column="4" Fill="#FFFF5722"/>
+    </Grid>
 </Window>

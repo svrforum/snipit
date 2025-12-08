@@ -442,13 +442,16 @@ public partial class GifRecordingOverlay : Window
     {
         _state = RecordingState.Recording;
 
-        // Calculate recording region before hiding overlay
-        var virtualScreen = ScreenCaptureService.GetVirtualScreenBounds();
+        // Calculate scale factor: screen bitmap uses physical pixels, WPF uses logical units
+        double scaleX = _screenBitmap != null ? (double)_screenBitmap.Width / ActualWidth : 1.0;
+        double scaleY = _screenBitmap != null ? (double)_screenBitmap.Height / ActualHeight : 1.0;
+
+        // Calculate recording region in physical pixels (not WPF logical units)
         var recordRegion = new System.Drawing.Rectangle(
-            (int)_selectedRegion.Left + virtualScreen.Left,
-            (int)_selectedRegion.Top + virtualScreen.Top,
-            (int)_selectedRegion.Width,
-            (int)_selectedRegion.Height);
+            (int)(_selectedRegion.Left * scaleX) + _screenOffsetX,
+            (int)(_selectedRegion.Top * scaleY) + _screenOffsetY,
+            (int)(_selectedRegion.Width * scaleX),
+            (int)(_selectedRegion.Height * scaleY));
 
         // Hide the overlay completely so it doesn't get recorded
         CountdownPanel.Visibility = Visibility.Collapsed;
@@ -468,7 +471,8 @@ public partial class GifRecordingOverlay : Window
         _controlWindow.Left = (screenWidth - _controlWindow.ActualWidth) / 2;
         _controlWindow.Top = 20; // 20px from top
 
-        // Show recording border window to indicate recording area
+        // Show recording border window OUTSIDE the recording area
+        // Border is positioned outside recordRegion so it won't appear in the recording
         _borderWindow = new RecordingBorderWindow();
         _borderWindow.SetRegion(recordRegion);
         _borderWindow.Show();
