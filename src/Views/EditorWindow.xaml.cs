@@ -87,22 +87,31 @@ public partial class EditorWindow : Window
         var primaryScreen = System.Windows.Forms.Screen.PrimaryScreen;
         if (primaryScreen == null) return;
 
+        // Get DPI scale factor
+        var source = PresentationSource.FromVisual(this);
+        double dpiScale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+
+        // WorkingArea is in physical pixels, convert to logical units for WPF
         var workArea = primaryScreen.WorkingArea;
+        double logicalWorkAreaLeft = workArea.Left / dpiScale;
+        double logicalWorkAreaTop = workArea.Top / dpiScale;
+        double logicalWorkAreaWidth = workArea.Width / dpiScale;
+        double logicalWorkAreaHeight = workArea.Height / dpiScale;
 
         // Center on primary monitor's working area
         double windowWidth = Width;
         double windowHeight = Height;
 
         // If window size not set yet, use defaults
-        if (double.IsNaN(windowWidth) || windowWidth <= 0) windowWidth = 1200;
-        if (double.IsNaN(windowHeight) || windowHeight <= 0) windowHeight = 800;
+        if (double.IsNaN(windowWidth) || windowWidth <= 0) windowWidth = 1150;
+        if (double.IsNaN(windowHeight) || windowHeight <= 0) windowHeight = 700;
 
-        // Ensure window fits within primary monitor
-        windowWidth = Math.Min(windowWidth, workArea.Width * 0.95);
-        windowHeight = Math.Min(windowHeight, workArea.Height * 0.95);
+        // Ensure window fits within primary monitor (in logical units)
+        windowWidth = Math.Min(windowWidth, logicalWorkAreaWidth * 0.95);
+        windowHeight = Math.Min(windowHeight, logicalWorkAreaHeight * 0.95);
 
-        Left = workArea.Left + (workArea.Width - windowWidth) / 2;
-        Top = workArea.Top + (workArea.Height - windowHeight) / 2;
+        Left = logicalWorkAreaLeft + (logicalWorkAreaWidth - windowWidth) / 2;
+        Top = logicalWorkAreaTop + (logicalWorkAreaHeight - windowHeight) / 2;
         Width = windowWidth;
         Height = windowHeight;
     }
