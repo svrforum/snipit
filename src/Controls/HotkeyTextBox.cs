@@ -33,23 +33,44 @@ public class HotkeyTextBox : System.Windows.Controls.TextBox
         IsReadOnly = true;
         IsReadOnlyCaretVisible = false;
         Cursor = System.Windows.Input.Cursors.Hand;
+        FontSize = 14;
+        VerticalContentAlignment = System.Windows.VerticalAlignment.Center;
+        Padding = new Thickness(12, 8, 12, 8);
+        BorderThickness = new Thickness(1);
+        BorderBrush = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(220, 220, 220));
         Background = System.Windows.Media.Brushes.White;
+        Foreground = System.Windows.Media.Brushes.Black;
 
         PreviewKeyDown += HotkeyTextBox_PreviewKeyDown;
         GotFocus += HotkeyTextBox_GotFocus;
         LostFocus += HotkeyTextBox_LostFocus;
+        Loaded += HotkeyTextBox_Loaded;
+    }
+
+    private void HotkeyTextBox_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Set initial text from HotkeyConfig
+        if (HotkeyConfig != null)
+        {
+            Text = HotkeyConfig.ToString();
+        }
     }
 
     private void HotkeyTextBox_GotFocus(object sender, RoutedEventArgs e)
     {
         Background = new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(227, 242, 253)); // Light blue
-        Text = "Press new hotkey...";
+            System.Windows.Media.Color.FromRgb(227, 242, 253));
+        BorderBrush = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(49, 130, 246));
+        Text = "단축키 입력...";
     }
 
     private void HotkeyTextBox_LostFocus(object sender, RoutedEventArgs e)
     {
         Background = System.Windows.Media.Brushes.White;
+        BorderBrush = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(220, 220, 220));
         if (HotkeyConfig != null)
         {
             Text = HotkeyConfig.ToString();

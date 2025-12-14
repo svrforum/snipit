@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using SnipIt.Models;
 using SnipIt.Services;
 using SnipIt.Utils;
 using Rectangle = System.Windows.Shapes.Rectangle;
@@ -167,7 +168,10 @@ public partial class CaptureOverlay : Window
 
     private void InitializeOverlays()
     {
-        var overlayBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(128, 0, 0, 0));
+        // Use configurable dimming opacity (0-100 → 0-255)
+        var config = AppSettingsConfig.Instance;
+        byte dimmingAlpha = (byte)(config.CaptureDimmingOpacity * 255 / 100);
+        var overlayBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(dimmingAlpha, 0, 0, 0));
 
         _topOverlay = new Rectangle { Fill = overlayBrush };
         _bottomOverlay = new Rectangle { Fill = overlayBrush };
@@ -316,19 +320,70 @@ public partial class CaptureOverlay : Window
     {
         if (_screenBitmap == null) return;
 
-        // Position magnifier at top-left of cursor
-        double magX = position.X - 140;
-        double magY = position.Y - 140;
+        var magnifierPos = AppSettingsConfig.Instance.MagnifierPosition;
+        double magX, magY;
+        const double magSize = 120;
+        const double padding = 20;
+        const double infoPanelHeight = 30;
 
-        // Adjust if near screen edge
-        if (magX < 10) magX = position.X + 20;
-        if (magY < 10) magY = position.Y + 20;
+        // Calculate magnifier position based on setting
+        switch (magnifierPos)
+        {
+            case MagnifierPosition.TopRight:
+                magX = position.X + padding;
+                magY = position.Y - magSize - padding;
+                if (magY < 10) magY = position.Y + padding;
+                if (magX + magSize > ActualWidth - 10) magX = position.X - magSize - padding;
+                break;
+
+            case MagnifierPosition.BottomLeft:
+                magX = position.X - magSize - padding;
+                magY = position.Y + padding;
+                if (magX < 10) magX = position.X + padding;
+                if (magY + magSize > ActualHeight - 10) magY = position.Y - magSize - padding;
+                break;
+
+            case MagnifierPosition.BottomRight:
+                magX = position.X + padding;
+                magY = position.Y + padding;
+                if (magX + magSize > ActualWidth - 10) magX = position.X - magSize - padding;
+                if (magY + magSize > ActualHeight - 10) magY = position.Y - magSize - padding;
+                break;
+
+            case MagnifierPosition.ScreenTopLeft:
+                magX = 20;
+                magY = 20;
+                break;
+
+            case MagnifierPosition.ScreenTopRight:
+                magX = ActualWidth - magSize - 20;
+                magY = 20;
+                break;
+
+            case MagnifierPosition.ScreenBottomLeft:
+                magX = 20;
+                magY = ActualHeight - magSize - infoPanelHeight - 30;
+                break;
+
+            case MagnifierPosition.ScreenBottomRight:
+                magX = ActualWidth - magSize - 20;
+                magY = ActualHeight - magSize - infoPanelHeight - 30;
+                break;
+
+            case MagnifierPosition.TopLeft:
+            default:
+                magX = position.X - magSize - padding;
+                magY = position.Y - magSize - padding;
+                if (magX < 10) magX = position.X + padding;
+                if (magY < 10) magY = position.Y + padding;
+                break;
+        }
 
         Magnifier.Margin = new Thickness(magX, magY, 0, 0);
         Magnifier.Visibility = Visibility.Visible;
 
         // Position InfoPanel below magnifier
-        InfoPanel.Margin = new Thickness(magX, magY + 125, 0, 0);
+        InfoPanel.Margin = new Thickness(magX, magY + magSize + 5, 0, 0);
 
         // Create magnified view (account for DPI scaling)
         int srcX = Math.Max(0, (int)(position.X * _screenBitmap.Width / ActualWidth) - 30);

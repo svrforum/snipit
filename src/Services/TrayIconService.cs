@@ -15,6 +15,29 @@ public class TrayIconService : IDisposable
     private ContextMenuStrip? _contextMenu;
     private IntPtr _iconHandle = IntPtr.Zero;
 
+    // Low-level keyboard hook for notification E key
+    private IntPtr _keyboardHookHandle = IntPtr.Zero;
+    private LowLevelKeyboardProc? _keyboardProc;
+    private System.Threading.Timer? _notificationTimer;
+
+    private const int WH_KEYBOARD_LL = 13;
+    private const int WM_KEYDOWN = 0x0100;
+
+    private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr GetModuleHandle(string lpModuleName);
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
@@ -67,12 +90,18 @@ public class TrayIconService : IDisposable
             var streamInfo = System.Windows.Application.GetResourceStream(uri);
             if (streamInfo != null)
             {
-                return new Icon(streamInfo.Stream, 32, 32);
+                var icon = new Icon(streamInfo.Stream, 32, 32);
+                System.Diagnostics.Debug.WriteLine("[TrayIcon] Loaded icon from resources");
+                return icon;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TrayIcon] Failed to load icon from resources: {ex.Message}");
+        }
 
         // Fallback: Create a simple icon programmatically
+        System.Diagnostics.Debug.WriteLine("[TrayIcon] Creating fallback icon");
         var bitmap = new Bitmap(32, 32);
         using (var g = Graphics.FromImage(bitmap))
         {
@@ -133,13 +162,106 @@ public class TrayIconService : IDisposable
         Application.Current.Shutdown();
     }
 
+    private Action? _pendingBalloonAction;
+
     public void ShowNotification(string title, string message, int timeout = 2000)
     {
-        _notifyIcon?.ShowBalloonTip(timeout, title, message, ToolTipIcon.Info);
+        _pendingBalloonAction = null;
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            var toast = new Views.ToastNotification(title, message, timeout);
+            toast.Show();
+        });
+    }
+
+    public void ShowNotificationWithAction(string title, string message, int timeout, Action onClick)
+    {
+        _pendingBalloonAction = onClick;
+
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            var toast = new Views.ToastNotification(title, message, timeout, () =>
+            {
+                RemoveKeyboardHook();
+                onClick?.Invoke();
+            });
+            toast.Show();
+        });
+
+        // Install keyboard hook for E key
+        InstallKeyboardHook();
+
+        // Set timer to remove hook after timeout
+        _notificationTimer?.Dispose();
+        _notificationTimer = new System.Threading.Timer(_ =>
+        {
+            Application.Current?.Dispatcher.BeginInvoke(() => RemoveKeyboardHook());
+        }, null, timeout + 500, System.Threading.Timeout.Infinite);
+    }
+
+    private void OnBalloonTipClicked(object? sender, EventArgs e)
+    {
+        RemoveKeyboardHook();
+        _pendingBalloonAction?.Invoke();
+        _pendingBalloonAction = null;
+    }
+
+    private void OnBalloonTipClosed(object? sender, EventArgs e)
+    {
+        RemoveKeyboardHook();
+        _pendingBalloonAction = null;
+    }
+
+    private void InstallKeyboardHook()
+    {
+        if (_keyboardHookHandle != IntPtr.Zero) return;
+
+        _keyboardProc = KeyboardHookCallback;
+        using var curProcess = System.Diagnostics.Process.GetCurrentProcess();
+        using var curModule = curProcess.MainModule;
+        if (curModule != null)
+        {
+            _keyboardHookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProc,
+                GetModuleHandle(curModule.ModuleName), 0);
+        }
+    }
+
+    private void RemoveKeyboardHook()
+    {
+        _notificationTimer?.Dispose();
+        _notificationTimer = null;
+
+        if (_keyboardHookHandle != IntPtr.Zero)
+        {
+            UnhookWindowsHookEx(_keyboardHookHandle);
+            _keyboardHookHandle = IntPtr.Zero;
+        }
+        _keyboardProc = null;
+    }
+
+    private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+        {
+            int vkCode = Marshal.ReadInt32(lParam);
+            // E key = 0x45 (69)
+            if (vkCode == 0x45 && _pendingBalloonAction != null)
+            {
+                Application.Current.Dispatcher.BeginInvoke(() =>
+                {
+                    RemoveKeyboardHook();
+                    _pendingBalloonAction?.Invoke();
+                    _pendingBalloonAction = null;
+                });
+                // Don't consume the key - let it pass through
+            }
+        }
+        return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
     }
 
     public void Dispose()
     {
+        RemoveKeyboardHook();
         _notifyIcon?.Dispose();
         _contextMenu?.Dispose();
 

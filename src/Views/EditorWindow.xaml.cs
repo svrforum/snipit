@@ -195,56 +195,66 @@ public partial class EditorWindow : Window
             return;
         }
 
-        // Tool shortcuts (no modifiers)
+        // Tool shortcuts (no modifiers) - use configurable shortcuts
         if (modifiers == System.Windows.Input.ModifierKeys.None)
         {
-            switch (e.Key)
+            var shortcuts = AppSettingsConfig.Instance.EditorShortcuts;
+
+            if (e.Key == shortcuts.Select)
             {
-                case Key.V:
-                    SelectTool("Select");
-                    e.Handled = true;
-                    break;
-                case Key.P:
-                    SelectTool("Pen");
-                    e.Handled = true;
-                    break;
-                case Key.A:
-                    SelectTool("Arrow");
-                    e.Handled = true;
-                    break;
-                case Key.L:
-                    SelectTool("Line");
-                    e.Handled = true;
-                    break;
-                case Key.R:
-                    SelectTool("Rectangle");
-                    e.Handled = true;
-                    break;
-                case Key.E:
-                    SelectTool("Ellipse");
-                    e.Handled = true;
-                    break;
-                case Key.T:
-                    SelectTool("Text");
-                    e.Handled = true;
-                    break;
-                case Key.H:
-                    SelectTool("Highlight");
-                    e.Handled = true;
-                    break;
-                case Key.M:
-                    SelectTool("Blur");
-                    e.Handled = true;
-                    break;
-                case Key.C:
-                    SelectTool("Crop");
-                    e.Handled = true;
-                    break;
-                case Key.Escape:
-                    // Cancel current operation or deselect tool
-                    SelectTool("Select");
-                    e.Handled = true;
-                    break;
+                SelectTool("Select");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Pen)
+            {
+                SelectTool("Pen");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Arrow)
+            {
+                SelectTool("Arrow");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Line)
+            {
+                SelectTool("Line");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Rectangle)
+            {
+                SelectTool("Rectangle");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Ellipse)
+            {
+                SelectTool("Ellipse");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Text)
+            {
+                SelectTool("Text");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Highlight)
+            {
+                SelectTool("Highlight");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Blur)
+            {
+                SelectTool("Blur");
+                e.Handled = true;
+            }
+            else if (e.Key == shortcuts.Crop)
+            {
+                SelectTool("Crop");
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                // Cancel current operation or deselect tool
+                SelectTool("Select");
+                e.Handled = true;
             }
         }
     }
@@ -282,18 +292,21 @@ public partial class EditorWindow : Window
 
     private string GetToolDisplayName(string toolName)
     {
+        var shortcuts = AppSettingsConfig.Instance.EditorShortcuts;
+        string GetKeyStr(Key key) => EditorToolShortcuts.GetKeyDisplayName(key);
+
         return toolName switch
         {
-            "Select" => "선택 (V)",
-            "Pen" => "펜 (P)",
-            "Arrow" => "화살표 (A)",
-            "Line" => "직선 (L)",
-            "Rectangle" => "사각형 (R)",
-            "Ellipse" => "타원 (E)",
-            "Text" => "텍스트 (T)",
-            "Highlight" => "형광펜 (H)",
-            "Blur" => "모자이크 (M)",
-            "Crop" => "자르기 (C)",
+            "Select" => $"선택 ({GetKeyStr(shortcuts.Select)})",
+            "Pen" => $"펜 ({GetKeyStr(shortcuts.Pen)})",
+            "Arrow" => $"화살표 ({GetKeyStr(shortcuts.Arrow)})",
+            "Line" => $"직선 ({GetKeyStr(shortcuts.Line)})",
+            "Rectangle" => $"사각형 ({GetKeyStr(shortcuts.Rectangle)})",
+            "Ellipse" => $"타원 ({GetKeyStr(shortcuts.Ellipse)})",
+            "Text" => $"텍스트 ({GetKeyStr(shortcuts.Text)})",
+            "Highlight" => $"형광펜 ({GetKeyStr(shortcuts.Highlight)})",
+            "Blur" => $"모자이크 ({GetKeyStr(shortcuts.Blur)})",
+            "Crop" => $"자르기 ({GetKeyStr(shortcuts.Crop)})",
             _ => toolName
         };
     }
@@ -424,6 +437,46 @@ public partial class EditorWindow : Window
         BaseImage.Source = BitmapToImageSource(bitmap);
         DrawingCanvas.Width = bitmap.Width;
         DrawingCanvas.Height = bitmap.Height;
+
+        // Apply initial zoom setting
+        ApplyInitialZoom(bitmap.Width, bitmap.Height);
+    }
+
+    private void ApplyInitialZoom(int imageWidth, int imageHeight)
+    {
+        var config = AppSettingsConfig.Instance;
+        if (config.EditorInitialZoom == EditorInitialZoom.Original)
+        {
+            SetZoom(1.0);
+        }
+        else
+        {
+            // Fit to window - calculate zoom to fit image in canvas area
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    var canvasArea = ImageScrollViewer;
+                    if (canvasArea != null && canvasArea.ActualWidth > 0 && canvasArea.ActualHeight > 0)
+                    {
+                        double availableWidth = canvasArea.ActualWidth - 40;
+                        double availableHeight = canvasArea.ActualHeight - 40;
+
+                        double scaleX = availableWidth / imageWidth;
+                        double scaleY = availableHeight / imageHeight;
+                        double scale = Math.Min(scaleX, scaleY);
+
+                        // Cap at 100% max
+                        scale = Math.Min(scale, 1.0);
+                        // Ensure minimum zoom
+                        scale = Math.Max(scale, ZoomMin);
+
+                        SetZoom(scale);
+                    }
+                }
+                catch { }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
     }
 
     private void SaveState()

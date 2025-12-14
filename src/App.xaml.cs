@@ -9,6 +9,7 @@ public partial class App : System.Windows.Application
     private TrayIconService? _trayIconService;
     private static Views.EditorWindow? _currentEditor;
     private static bool _isCapturing = false;
+    private static System.Drawing.Bitmap? _lastSilentCapture;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
@@ -81,6 +82,12 @@ public partial class App : System.Windows.Application
         {
             failedHotkeys.Add($"GIF 녹화: {config.GifHotkey}");
         }
+
+        // Register Ctrl+Shift+E for opening last capture in editor (silent mode)
+        _hotkeyService?.RegisterHotkey("OpenEditor",
+            ModifierKeys.Control | ModifierKeys.Shift,
+            System.Windows.Forms.Keys.E,
+            () => OpenLastSilentCapture());
 
         // Show warning if any hotkeys failed to register
         if (failedHotkeys.Count > 0)
@@ -202,6 +209,24 @@ public partial class App : System.Windows.Application
         // Save to history
         CaptureHistoryService.Instance.AddCapture(bitmap);
 
+        // Check if silent mode is enabled
+        var config = AppSettingsConfig.Instance;
+        if (config.SilentMode)
+        {
+            // Store the bitmap for later editing
+            _lastSilentCapture?.Dispose();
+            _lastSilentCapture = (System.Drawing.Bitmap)bitmap.Clone();
+
+            // Just copy to clipboard and show notification with click handler
+            CopyBitmapToClipboard(bitmap);
+            TrayIconService.Instance.ShowNotificationWithAction(
+                "캡처 완료",
+                "E키 또는 클릭으로 편집기 열기",
+                3000,
+                OpenLastSilentCapture);
+            return;
+        }
+
         // Close existing editor window
         if (_currentEditor != null)
         {
@@ -213,6 +238,76 @@ public partial class App : System.Windows.Application
         _currentEditor = new Views.EditorWindow(bitmap);
         _currentEditor.Closed += (s, e) => _currentEditor = null;
         _currentEditor.Show();
+    }
+
+    private static void CopyBitmapToClipboard(System.Drawing.Bitmap bitmap)
+    {
+        try
+        {
+            IntPtr hBitmap = IntPtr.Zero;
+            try
+            {
+                hBitmap = bitmap.GetHbitmap();
+                var bitmapSource = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
+                    hBitmap,
+                    IntPtr.Zero,
+                    System.Windows.Int32Rect.Empty,
+                    System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                bitmapSource.Freeze();
+                System.Windows.Clipboard.SetImage(bitmapSource);
+            }
+            finally
+            {
+                if (hBitmap != IntPtr.Zero)
+                    DeleteObject(hBitmap);
+            }
+        }
+        catch
+        {
+            // Ignore clipboard errors
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    private static extern bool DeleteObject(IntPtr hObject);
+
+    public static void OpenLastSilentCapture()
+    {
+        if (_lastSilentCapture != null)
+        {
+            // Close existing editor window
+            if (_currentEditor != null)
+            {
+                _currentEditor.Close();
+                _currentEditor = null;
+            }
+
+            // Open editor with the last captured image
+            _currentEditor = new Views.EditorWindow((System.Drawing.Bitmap)_lastSilentCapture.Clone());
+            _currentEditor.Closed += (s, e) => _currentEditor = null;
+            _currentEditor.Show();
+        }
+        else
+        {
+            // Try to open the most recent capture from history
+            var history = CaptureHistoryService.Instance.History;
+            if (history.Count > 0)
+            {
+                var latestCapture = CaptureHistoryService.Instance.LoadImage(history[0]);
+                if (latestCapture != null)
+                {
+                    if (_currentEditor != null)
+                    {
+                        _currentEditor.Close();
+                        _currentEditor = null;
+                    }
+
+                    _currentEditor = new Views.EditorWindow(latestCapture);
+                    _currentEditor.Closed += (s, e) => _currentEditor = null;
+                    _currentEditor.Show();
+                }
+            }
+        }
     }
 
     protected override void OnExit(System.Windows.ExitEventArgs e)

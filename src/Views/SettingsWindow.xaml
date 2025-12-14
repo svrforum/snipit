@@ -3,205 +3,444 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:SnipIt.Controls"
         Title="설정"
-        Width="480" Height="720"
+        Width="720" Height="640"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="{StaticResource BackgroundBrush}"
+        Background="{StaticResource SurfaceBrush}"
         Icon="pack://application:,,,/Assets/icon.ico">
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <!-- Navigation Button Style -->
+        <Style x:Key="NavButtonStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F2F4F6"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#E5F0FF"/>
+                                <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Padding="28,24,28,16">
-            <TextBlock Text="설정" FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimaryBrush}"/>
+        <!-- Section Title Style -->
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+
+        <!-- Setting Row Style -->
+        <Style x:Key="SettingRowStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Navigation -->
+        <Border Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <StackPanel Margin="12,20">
+                <TextBlock Text="설정" FontSize="20" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Margin="16,0,0,20"/>
+
+                <RadioButton x:Name="NavGeneral" Content="일반"
+                             Style="{StaticResource NavButtonStyle}"
+                             IsChecked="True" GroupName="Nav"
+                             Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavGif" Content="GIF 녹화"
+                             Style="{StaticResource NavButtonStyle}"
+                             GroupName="Nav"
+                             Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavHotkeys" Content="전역 단축키"
+                             Style="{StaticResource NavButtonStyle}"
+                             GroupName="Nav"
+                             Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavEditor" Content="에디터 단축키"
+                             Style="{StaticResource NavButtonStyle}"
+                             GroupName="Nav"
+                             Checked="Nav_Checked"/>
+            </StackPanel>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="28,0">
-            <StackPanel>
-                <!-- General Settings -->
-                <TextBlock Text="일반" FontWeight="SemiBold" FontSize="13"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,12"/>
+        <!-- Right Content Area -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <Border Background="{StaticResource CardBrush}" CornerRadius="16"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                        Padding="20" Margin="0,0,0,20">
-                    <StackPanel>
-                        <CheckBox x:Name="ChkCaptureCursor" Content="마우스 커서 포함" Margin="0,6"/>
-                        <CheckBox x:Name="ChkCopyToClipboard" Content="캡쳐 후 클립보드에 복사" Margin="0,6"/>
-                        <CheckBox x:Name="ChkPlaySound" Content="캡쳐 효과음 재생" Margin="0,6"/>
-                        <CheckBox x:Name="ChkStartMinimized" Content="시작 시 최소화" Margin="0,6"/>
+            <!-- Content Panels -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,24">
+                <Grid>
+                    <!-- General Settings Panel -->
+                    <StackPanel x:Name="PanelGeneral">
+                        <TextBlock Text="기본 설정" Style="{StaticResource SectionTitleStyle}"/>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <CheckBox x:Name="ChkCaptureCursor" Content="마우스 커서 포함"/>
+                        </Border>
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <CheckBox x:Name="ChkCopyToClipboard" Content="캡쳐 후 클립보드에 복사"/>
+                        </Border>
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <CheckBox x:Name="ChkPlaySound" Content="캡쳐 효과음 재생"/>
+                        </Border>
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <CheckBox x:Name="ChkStartMinimized" Content="시작 시 최소화"/>
+                        </Border>
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <CheckBox x:Name="ChkSilentMode" Content="사일런트 모드"/>
+                                    <TextBlock Text="편집창 없이 클립보드 복사 (E키로 편집기 열기)"
+                                               FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="32,4,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="편집기 초기 줌" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <ComboBox x:Name="CmbEditorZoom" Grid.Column="1" Width="140" Padding="12,10">
+                                    <ComboBoxItem Content="창에 맞춤" Tag="FitToWindow" IsSelected="True"/>
+                                    <ComboBoxItem Content="100% (원본)" Tag="Original"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="확대경 위치" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <ComboBox x:Name="CmbMagnifierPosition" Grid.Column="1" Width="180" Padding="12,10">
+                                    <ComboBoxItem Content="커서 좌상단" Tag="TopLeft" IsSelected="True"/>
+                                    <ComboBoxItem Content="커서 우상단" Tag="TopRight"/>
+                                    <ComboBoxItem Content="커서 좌하단" Tag="BottomLeft"/>
+                                    <ComboBoxItem Content="커서 우하단" Tag="BottomRight"/>
+                                    <ComboBoxItem Content="화면 좌상단 고정" Tag="ScreenTopLeft"/>
+                                    <ComboBoxItem Content="화면 우상단 고정" Tag="ScreenTopRight"/>
+                                    <ComboBoxItem Content="화면 좌하단 고정" Tag="ScreenBottomLeft"/>
+                                    <ComboBoxItem Content="화면 우하단 고정" Tag="ScreenBottomRight"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="캡처 화면 어둡기" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="TxtDimmingValue" Grid.Column="1" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Width="40" TextAlignment="Right"/>
+                                <Slider x:Name="SliderDimming" Grid.Row="1" Grid.ColumnSpan="2"
+                                        Minimum="0" Maximum="100" Value="50"
+                                        TickFrequency="10" IsSnapToTickEnabled="False"
+                                        Margin="0,8,0,0"
+                                        ValueChanged="SliderDimming_ValueChanged"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="언어" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <ComboBox x:Name="CmbLanguage" Grid.Column="1" Width="140" Padding="12,10">
+                                    <ComboBoxItem Content="한국어" Tag="Korean" IsSelected="True"/>
+                                    <ComboBoxItem Content="English" Tag="English"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="저장" Style="{StaticResource SectionTitleStyle}" Margin="0,24,0,16"/>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="기본 저장 경로" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <Button Grid.Column="1" Content="변경" Style="{StaticResource SecondaryButtonStyle}"
+                                        Padding="16,8" Click="BtnBrowse_Click"/>
+                                <TextBox x:Name="TxtSavePath" Grid.Row="1" Grid.ColumnSpan="2"
+                                         Style="{StaticResource TossTextBoxStyle}" IsReadOnly="True"
+                                         Margin="0,10,0,0" FontSize="12"
+                                         Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="기본 형식" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <ComboBox x:Name="CmbFormat" Grid.Column="1" Width="100" Padding="12,10">
+                                    <ComboBoxItem Content="PNG" IsSelected="True"/>
+                                    <ComboBoxItem Content="JPG"/>
+                                    <ComboBoxItem Content="BMP"/>
+                                    <ComboBoxItem Content="GIF"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- GIF Settings Panel -->
+                    <StackPanel x:Name="PanelGif" Visibility="Collapsed">
+                        <TextBlock Text="GIF 녹화 설정" Style="{StaticResource SectionTitleStyle}"/>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="프레임 레이트 (FPS)"
+                                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="높은 FPS는 더 부드럽지만 파일 크기가 커집니다"
+                                               FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                                <ComboBox x:Name="CmbGifFps" Grid.Column="1" Width="120" Padding="12,10">
+                                    <ComboBoxItem Content="15 fps" Tag="15"/>
+                                    <ComboBoxItem Content="30 fps" Tag="30" IsSelected="True"/>
+                                    <ComboBoxItem Content="60 fps" Tag="60"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="용량 최적화"
+                                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="중복 프레임을 스킵하여 용량을 줄입니다"
+                                               FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                                <ComboBox x:Name="CmbGifQuality" Grid.Column="1" Width="180" Padding="12,10">
+                                    <ComboBoxItem Content="원본 (최고 품질)" Tag="Original"/>
+                                    <ComboBoxItem Content="중복 프레임 스킵" Tag="SkipFrames" IsSelected="True"/>
+                                    <ComboBoxItem Content="스킵 + 50% 해상도" Tag="SkipFramesHalfSize"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="최대 녹화 시간"
+                                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="60초 기준 약 300~500MB 메모리 사용"
+                                               FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                                <ComboBox x:Name="CmbGifMaxDuration" Grid.Column="1" Width="100" Padding="12,10">
+                                    <ComboBoxItem Content="30초" Tag="30"/>
+                                    <ComboBoxItem Content="60초" Tag="60" IsSelected="True"/>
+                                    <ComboBoxItem Content="120초" Tag="120"/>
+                                    <ComboBoxItem Content="180초" Tag="180"/>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Hotkeys Panel -->
+                    <StackPanel x:Name="PanelHotkeys" Visibility="Collapsed">
+                        <TextBlock Text="전역 단축키" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="필드를 클릭하고 새 단축키를 입력하세요"
+                                   FontSize="13" Foreground="{StaticResource TextTertiaryBrush}"
+                                   Margin="0,0,0,12"/>
+
+                        <Border Background="{StaticResource SurfaceBrush}" CornerRadius="10" Padding="16,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="44"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="전체 화면" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:HotkeyTextBox x:Name="HotkeyFullScreen" Grid.Column="1"
+                                    Height="36" FontSize="14"/>
+
+                                <TextBlock Grid.Row="1" Text="활성 창" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:HotkeyTextBox x:Name="HotkeyActiveWindow" Grid.Row="1" Grid.Column="1"
+                                    Height="36" FontSize="14"/>
+
+                                <TextBlock Grid.Row="2" Text="영역 선택" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:HotkeyTextBox x:Name="HotkeyRegion" Grid.Row="2" Grid.Column="1"
+                                    Height="36" FontSize="14"/>
+
+                                <TextBlock Grid.Row="3" Text="GIF 녹화" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:HotkeyTextBox x:Name="HotkeyGif" Grid.Row="3" Grid.Column="1"
+                                    Height="36" FontSize="14"/>
+                            </Grid>
+                        </Border>
 
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                            <TextBlock Text="언어" FontSize="14" VerticalAlignment="Center" Width="80"
-                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <ComboBox x:Name="CmbLanguage" Width="140" Padding="12,10">
-                                <ComboBoxItem Content="한국어" Tag="Korean" IsSelected="True"/>
-                                <ComboBoxItem Content="English" Tag="English"/>
-                            </ComboBox>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Save Settings -->
-                <TextBlock Text="저장" FontWeight="SemiBold" FontSize="13"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,12"/>
-
-                <Border Background="{StaticResource CardBrush}" CornerRadius="16"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                        Padding="20" Margin="0,0,0,20">
-                    <StackPanel>
-                        <TextBlock Text="기본 저장 경로" FontSize="14" FontWeight="Medium"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBox x:Name="TxtSavePath" Style="{StaticResource TossTextBoxStyle}"
-                                     IsReadOnly="True" Padding="12,10"/>
-                            <Button Grid.Column="1" Content="찾아보기" Style="{StaticResource SecondaryButtonStyle}"
-                                    Margin="10,0,0,0" Padding="16,10" Click="BtnBrowse_Click"/>
-                        </Grid>
-
-                        <TextBlock Text="기본 형식" FontSize="14" FontWeight="Medium"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,20,0,10"/>
-                        <ComboBox x:Name="CmbFormat" Width="140" HorizontalAlignment="Left" Padding="12,10">
-                            <ComboBoxItem Content="PNG" IsSelected="True"/>
-                            <ComboBoxItem Content="JPG"/>
-                            <ComboBoxItem Content="BMP"/>
-                            <ComboBoxItem Content="GIF"/>
-                        </ComboBox>
-                    </StackPanel>
-                </Border>
-
-                <!-- GIF Settings -->
-                <TextBlock Text="GIF 녹화" FontWeight="SemiBold" FontSize="13"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,12"/>
-
-                <Border Background="{StaticResource CardBrush}" CornerRadius="16"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                        Padding="20" Margin="0,0,0,20">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="프레임 레이트 (FPS)" FontSize="14" VerticalAlignment="Center" Width="140"
-                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <ComboBox x:Name="CmbGifFps" Width="100" Padding="12,10">
-                                <ComboBoxItem Content="15 fps" Tag="15"/>
-                                <ComboBoxItem Content="30 fps" Tag="30" IsSelected="True"/>
-                                <ComboBoxItem Content="60 fps" Tag="60"/>
-                            </ComboBox>
-                        </StackPanel>
-                        <TextBlock Text="높은 FPS는 더 부드러운 GIF를 만들지만 파일 크기가 커집니다."
-                                   Foreground="{StaticResource TextTertiaryBrush}" FontSize="11" Margin="0,8,0,0"/>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                            <TextBlock Text="용량 최적화" FontSize="14" VerticalAlignment="Center" Width="140"
-                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <ComboBox x:Name="CmbGifQuality" Width="200" Padding="12,10">
-                                <ComboBoxItem Content="원본 (최고 품질)" Tag="Original"/>
-                                <ComboBoxItem Content="중복 프레임 스킵" Tag="SkipFrames" IsSelected="True"/>
-                                <ComboBoxItem Content="중복 스킵 + 50% 해상도" Tag="SkipFramesHalfSize"/>
-                            </ComboBox>
-                        </StackPanel>
-                        <TextBlock Text="중복 프레임 스킵: 변화 없는 프레임을 건너뛰어 용량 감소"
-                                   Foreground="{StaticResource TextTertiaryBrush}" FontSize="11" Margin="0,8,0,0"/>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                            <TextBlock Text="최대 녹화 시간" FontSize="14" VerticalAlignment="Center" Width="140"
-                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <ComboBox x:Name="CmbGifMaxDuration" Width="120" Padding="12,10">
-                                <ComboBoxItem Content="30초" Tag="30"/>
-                                <ComboBoxItem Content="60초" Tag="60" IsSelected="True"/>
-                                <ComboBoxItem Content="120초" Tag="120"/>
-                                <ComboBoxItem Content="180초" Tag="180"/>
-                            </ComboBox>
-                        </StackPanel>
-                        <TextBlock Text="⚠️ 녹화 시간이 길수록 메모리 사용량이 증가합니다. (60초 기준 약 300~500MB)"
-                                   Foreground="{StaticResource TextTertiaryBrush}" FontSize="11" Margin="0,8,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Hotkeys -->
-                <TextBlock Text="단축키" FontWeight="SemiBold" FontSize="13"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,12"/>
-
-                <Border Background="{StaticResource CardBrush}" CornerRadius="16"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                        Padding="20" Margin="0,0,0,20">
-                    <StackPanel>
-                        <TextBlock Text="필드를 클릭하고 새 단축키를 입력하세요"
-                                   Foreground="{StaticResource TextTertiaryBrush}" FontSize="12" Margin="0,0,0,16"/>
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="160"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <TextBlock Text="전체 화면" FontSize="14" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <controls:HotkeyTextBox x:Name="HotkeyFullScreen" Grid.Column="1"
-                                                    Style="{StaticResource TossTextBoxStyle}"
-                                                    Padding="12,10" Cursor="Hand"/>
-
-                            <TextBlock Grid.Row="1" Text="활성 창" FontSize="14" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,12,0,0"/>
-                            <controls:HotkeyTextBox x:Name="HotkeyActiveWindow" Grid.Row="1" Grid.Column="1"
-                                                    Style="{StaticResource TossTextBoxStyle}"
-                                                    Padding="12,10" Margin="0,12,0,0" Cursor="Hand"/>
-
-                            <TextBlock Grid.Row="2" Text="영역 선택" FontSize="14" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,12,0,0"/>
-                            <controls:HotkeyTextBox x:Name="HotkeyRegion" Grid.Row="2" Grid.Column="1"
-                                                    Style="{StaticResource TossTextBoxStyle}"
-                                                    Padding="12,10" Margin="0,12,0,0" Cursor="Hand"/>
-
-                            <TextBlock Grid.Row="3" Text="GIF 녹화" FontSize="14" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,12,0,0"/>
-                            <controls:HotkeyTextBox x:Name="HotkeyGif" Grid.Row="3" Grid.Column="1"
-                                                    Style="{StaticResource TossTextBoxStyle}"
-                                                    Padding="12,10" Margin="0,12,0,0" Cursor="Hand"/>
-                        </Grid>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
                             <Button Content="기본값으로 초기화" Style="{StaticResource SecondaryButtonStyle}"
                                     Padding="16,10" Click="BtnResetHotkeys_Click"/>
-                            <Button Content="🔄 핫키 재등록" Style="{StaticResource SecondaryButtonStyle}"
-                                    Padding="16,10" Margin="12,0,0,0" Click="BtnReregisterHotkeys_Click"
-                                    ToolTip="핫키가 작동하지 않을 때 다시 등록합니다"/>
+                            <Button Content="핫키 재등록" Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="16,10" Margin="8,0,0,0" Click="BtnReregisterHotkeys_Click"/>
                         </StackPanel>
                     </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
 
-        <!-- Footer Buttons -->
-        <Border Grid.Row="2" Padding="28,16" Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                    <!-- Editor Shortcuts Panel -->
+                    <StackPanel x:Name="PanelEditor" Visibility="Collapsed">
+                        <TextBlock Text="에디터 도구 단축키" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="이미지 편집기에서 사용할 단축키입니다 (A-Z, 0-9)"
+                                   FontSize="13" Foreground="{StaticResource TextTertiaryBrush}"
+                                   Margin="0,0,0,12"/>
 
-                <Button Grid.Column="1" Content="취소" Style="{StaticResource SecondaryButtonStyle}"
-                        Width="100" Click="BtnCancel_Click"/>
-                <Button Grid.Column="2" Content="저장" Style="{StaticResource PrimaryButtonStyle}"
-                        Width="100" Margin="12,0,0,0" Click="BtnSave_Click"/>
-            </Grid>
-        </Border>
+                        <!-- Compact grid layout for shortcuts -->
+                        <Border Background="{StaticResource SurfaceBrush}" CornerRadius="10" Padding="16,14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="44"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Row 0 -->
+                                <TextBlock Text="선택" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeySelect" Grid.Column="1" Height="34"/>
+                                <TextBlock Grid.Column="3" Text="펜" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyPen" Grid.Column="4" Height="34"/>
+
+                                <!-- Row 1 -->
+                                <TextBlock Grid.Row="1" Text="화살표" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyArrow" Grid.Row="1" Grid.Column="1" Height="34"/>
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="직선" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyLine" Grid.Row="1" Grid.Column="4" Height="34"/>
+
+                                <!-- Row 2 -->
+                                <TextBlock Grid.Row="2" Text="사각형" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyRectangle" Grid.Row="2" Grid.Column="1" Height="34"/>
+                                <TextBlock Grid.Row="2" Grid.Column="3" Text="타원" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyEllipse" Grid.Row="2" Grid.Column="4" Height="34"/>
+
+                                <!-- Row 3 -->
+                                <TextBlock Grid.Row="3" Text="텍스트" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyText" Grid.Row="3" Grid.Column="1" Height="34"/>
+                                <TextBlock Grid.Row="3" Grid.Column="3" Text="형광펜" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyHighlight" Grid.Row="3" Grid.Column="4" Height="34"/>
+
+                                <!-- Row 4 -->
+                                <TextBlock Grid.Row="4" Text="모자이크" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyBlur" Grid.Row="4" Grid.Column="1" Height="34"/>
+                                <TextBlock Grid.Row="4" Grid.Column="3" Text="자르기" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <controls:EditorShortcutTextBox x:Name="EditorKeyCrop" Grid.Row="4" Grid.Column="4" Height="34"/>
+                            </Grid>
+                        </Border>
+
+                        <Button Content="기본값으로 초기화" Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="16,10" Margin="0,12,0,0" HorizontalAlignment="Left"
+                                Click="BtnResetEditorShortcuts_Click"/>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+
+            <!-- Footer Buttons -->
+            <Border Grid.Row="1" Padding="28,16" Background="{StaticResource CardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="1" Content="취소" Style="{StaticResource SecondaryButtonStyle}"
+                            Width="100" Click="BtnCancel_Click"/>
+                    <Button Grid.Column="2" Content="저장" Style="{StaticResource PrimaryButtonStyle}"
+                            Width="100" Margin="12,0,0,0" Click="BtnSave_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

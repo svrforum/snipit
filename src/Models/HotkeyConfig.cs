@@ -6,6 +6,108 @@ using SnipIt.Services;
 namespace SnipIt.Models;
 
 /// <summary>
+/// 확대경 위치 설정
+/// </summary>
+public enum MagnifierPosition
+{
+    /// <summary>
+    /// 커서 좌상단 (기본값)
+    /// </summary>
+    TopLeft,
+
+    /// <summary>
+    /// 커서 우상단
+    /// </summary>
+    TopRight,
+
+    /// <summary>
+    /// 커서 좌하단
+    /// </summary>
+    BottomLeft,
+
+    /// <summary>
+    /// 커서 우하단
+    /// </summary>
+    BottomRight,
+
+    /// <summary>
+    /// 화면 좌상단 고정
+    /// </summary>
+    ScreenTopLeft,
+
+    /// <summary>
+    /// 화면 우상단 고정
+    /// </summary>
+    ScreenTopRight,
+
+    /// <summary>
+    /// 화면 좌하단 고정
+    /// </summary>
+    ScreenBottomLeft,
+
+    /// <summary>
+    /// 화면 우하단 고정
+    /// </summary>
+    ScreenBottomRight
+}
+
+/// <summary>
+/// 편집기 초기 줌 모드
+/// </summary>
+public enum EditorInitialZoom
+{
+    /// <summary>
+    /// 창에 맞춤
+    /// </summary>
+    FitToWindow,
+
+    /// <summary>
+    /// 100% (원본 크기)
+    /// </summary>
+    Original
+}
+
+/// <summary>
+/// Editor tool shortcut settings (단일 키 단축키)
+/// </summary>
+public sealed class EditorToolShortcuts
+{
+    public System.Windows.Input.Key Select { get; set; } = System.Windows.Input.Key.V;
+    public System.Windows.Input.Key Pen { get; set; } = System.Windows.Input.Key.P;
+    public System.Windows.Input.Key Arrow { get; set; } = System.Windows.Input.Key.A;
+    public System.Windows.Input.Key Line { get; set; } = System.Windows.Input.Key.L;
+    public System.Windows.Input.Key Rectangle { get; set; } = System.Windows.Input.Key.R;
+    public System.Windows.Input.Key Ellipse { get; set; } = System.Windows.Input.Key.E;
+    public System.Windows.Input.Key Text { get; set; } = System.Windows.Input.Key.T;
+    public System.Windows.Input.Key Highlight { get; set; } = System.Windows.Input.Key.H;
+    public System.Windows.Input.Key Blur { get; set; } = System.Windows.Input.Key.M;
+    public System.Windows.Input.Key Crop { get; set; } = System.Windows.Input.Key.C;
+
+    public void ResetToDefaults()
+    {
+        Select = System.Windows.Input.Key.V;
+        Pen = System.Windows.Input.Key.P;
+        Arrow = System.Windows.Input.Key.A;
+        Line = System.Windows.Input.Key.L;
+        Rectangle = System.Windows.Input.Key.R;
+        Ellipse = System.Windows.Input.Key.E;
+        Text = System.Windows.Input.Key.T;
+        Highlight = System.Windows.Input.Key.H;
+        Blur = System.Windows.Input.Key.M;
+        Crop = System.Windows.Input.Key.C;
+    }
+
+    public static string GetKeyDisplayName(System.Windows.Input.Key key) => key switch
+    {
+        System.Windows.Input.Key.None => "",
+        >= System.Windows.Input.Key.A and <= System.Windows.Input.Key.Z => key.ToString(),
+        >= System.Windows.Input.Key.D0 and <= System.Windows.Input.Key.D9 =>
+            ((int)key - (int)System.Windows.Input.Key.D0).ToString(),
+        _ => key.ToString()
+    };
+}
+
+/// <summary>
 /// GIF recording quality preset
 /// </summary>
 public enum GifQualityPreset
@@ -113,10 +215,19 @@ public sealed class AppSettingsConfig
     public string DefaultFormat { get; set; } = "png";
     public Language Language { get; set; } = Language.Korean;
 
+    // Capture behavior settings
+    public bool SilentMode { get; set; } = false; // 캡처 후 편집창 없이 클립보드에만 복사
+    public MagnifierPosition MagnifierPosition { get; set; } = MagnifierPosition.TopLeft; // 확대경 위치
+    public EditorInitialZoom EditorInitialZoom { get; set; } = EditorInitialZoom.FitToWindow; // 편집기 초기 줌
+    public int CaptureDimmingOpacity { get; set; } = 50; // 캡처 시 화면 어둡기 (0-100, 0=투명, 100=완전 어두움)
+
     // GIF settings
     public int GifFps { get; set; } = 30; // 15, 30, or 60
     public GifQualityPreset GifQuality { get; set; } = GifQualityPreset.SkipFrames; // 기본값: 중복 프레임 스킵
     public int GifMaxDurationSeconds { get; set; } = 60; // 최대 녹화 시간 (초), 기본 60초
+
+    // Editor tool shortcut settings (단일 키만 사용)
+    public EditorToolShortcuts EditorShortcuts { get; set; } = new();
 
     // Hotkey settings with collection expression
     public HotkeyConfig FullScreenHotkey { get; set; } = new(ModifierKeys.None, System.Windows.Forms.Keys.PrintScreen);
@@ -184,6 +295,9 @@ public sealed class AppSettingsConfig
 
         if (GifHotkey == null || GifHotkey.Key == System.Windows.Forms.Keys.None)
             GifHotkey = new HotkeyConfig(ModifierKeys.Control | ModifierKeys.Shift, System.Windows.Forms.Keys.G);
+
+        // Ensure editor shortcuts exist
+        EditorShortcuts ??= new EditorToolShortcuts();
     }
 
     public void Save()

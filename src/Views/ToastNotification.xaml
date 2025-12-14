@@ -1,0 +1,39 @@
+<Window x:Class="SnipIt.Views.ToastNotification"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="알림"
+        Width="320" Height="80"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        ResizeMode="NoResize">
+
+    <Border Background="#F0F0F0" CornerRadius="8" Margin="8"
+            BorderBrush="#CCCCCC" BorderThickness="1"
+            Cursor="Hand" MouseLeftButtonDown="Border_MouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" Opacity="0.3" BlurRadius="12" ShadowDepth="2"/>
+        </Border.Effect>
+        <Grid Margin="16,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Icon -->
+            <Border Width="40" Height="40" CornerRadius="8" Background="#3182F6" VerticalAlignment="Center">
+                <TextBlock Text="✓" Foreground="White" FontSize="20"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold"/>
+            </Border>
+
+            <!-- Text -->
+            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock x:Name="TitleText" Text="캡처 완료" FontSize="14" FontWeight="SemiBold" Foreground="#191F28"/>
+                <TextBlock x:Name="MessageText" Text="E키 또는 클릭으로 편집기 열기" FontSize="12" Foreground="#6B7280" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
