@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 using SnipIt.Models;
 using SnipIt.Services;
 using SnipIt.Utils;
@@ -62,7 +63,9 @@ public partial class SettingsWindow : Window
         ChkCopyToClipboard.IsChecked = _config.CopyToClipboard;
         ChkPlaySound.IsChecked = _config.PlaySound;
         ChkStartMinimized.IsChecked = _config.StartMinimized;
+        ChkRunAtStartup.IsChecked = _config.RunAtStartup;
         ChkSilentMode.IsChecked = _config.SilentMode;
+        ChkSilentModeAutoSave.IsChecked = _config.SilentModeAutoSave;
 
         // Editor initial zoom
         CmbEditorZoom.SelectedIndex = _config.EditorInitialZoom == EditorInitialZoom.Original ? 1 : 0;
@@ -202,7 +205,12 @@ public partial class SettingsWindow : Window
         _config.CopyToClipboard = ChkCopyToClipboard.IsChecked ?? false;
         _config.PlaySound = ChkPlaySound.IsChecked ?? false;
         _config.StartMinimized = ChkStartMinimized.IsChecked ?? false;
+        _config.RunAtStartup = ChkRunAtStartup.IsChecked ?? false;
         _config.SilentMode = ChkSilentMode.IsChecked ?? false;
+        _config.SilentModeAutoSave = ChkSilentModeAutoSave.IsChecked ?? false;
+
+        // Update Windows startup registry
+        SetStartupRegistry(_config.RunAtStartup);
 
         // Editor initial zoom
         var selectedZoom = (CmbEditorZoom.SelectedItem as ComboBoxItem)?.Tag?.ToString();
@@ -338,5 +346,39 @@ public partial class SettingsWindow : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private const string StartupRegistryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+    private const string AppName = "SnipIt";
+
+    private void SetStartupRegistry(bool enable)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey, writable: true);
+            if (key == null) return;
+
+            if (enable)
+            {
+                // Get the current executable path
+                var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrEmpty(exePath))
+                {
+                    key.SetValue(AppName, $"\"{exePath}\"");
+                }
+            }
+            else
+            {
+                // Remove from startup
+                if (key.GetValue(AppName) != null)
+                {
+                    key.DeleteValue(AppName, throwOnMissingValue: false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SettingsWindow] Failed to update startup registry: {ex.Message}");
+        }
     }
 }

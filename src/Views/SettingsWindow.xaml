@@ -118,6 +118,9 @@
                             <CheckBox x:Name="ChkStartMinimized" Content="시작 시 최소화"/>
                         </Border>
                         <Border Style="{StaticResource SettingRowStyle}">
+                            <CheckBox x:Name="ChkRunAtStartup" Content="Windows 시작 시 자동 실행"/>
+                        </Border>
+                        <Border Style="{StaticResource SettingRowStyle}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -125,7 +128,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <CheckBox x:Name="ChkSilentMode" Content="사일런트 모드"/>
-                                    <TextBlock Text="편집창 없이 클립보드 복사 (E키로 편집기 열기)"
+                                    <TextBlock Text="편집창 없이 클립보드 복사 (E: 편집, S: 저장)"
+                                               FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
+                                               Margin="32,4,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <CheckBox x:Name="ChkSilentModeAutoSave" Content="S키 자동 저장"/>
+                                    <TextBlock Text="저장 경로를 묻지 않고 기본 경로에 자동 저장"
                                                FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
                                                Margin="32,4,0,0"/>
                                 </StackPanel>

@@ -211,12 +211,14 @@ public sealed class AppSettingsConfig
     public bool CopyToClipboard { get; set; } = true;
     public bool PlaySound { get; set; } = false;
     public bool StartMinimized { get; set; } = false;
+    public bool RunAtStartup { get; set; } = false;
     public string SavePath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
     public string DefaultFormat { get; set; } = "png";
     public Language Language { get; set; } = Language.Korean;
 
     // Capture behavior settings
     public bool SilentMode { get; set; } = false; // 캡처 후 편집창 없이 클립보드에만 복사
+    public bool SilentModeAutoSave { get; set; } = false; // 사일런트 모드에서 S키 저장 시 경로 묻지 않고 자동 저장
     public MagnifierPosition MagnifierPosition { get; set; } = MagnifierPosition.TopLeft; // 확대경 위치
     public EditorInitialZoom EditorInitialZoom { get; set; } = EditorInitialZoom.FitToWindow; // 편집기 초기 줌
     public int CaptureDimmingOpacity { get; set; } = 50; // 캡처 시 화면 어둡기 (0-100, 0=투명, 100=완전 어두움)

@@ -162,11 +162,13 @@ public class TrayIconService : IDisposable
         Application.Current.Shutdown();
     }
 
-    private Action? _pendingBalloonAction;
+    private Action? _pendingEditAction;
+    private Action? _pendingSaveAction;
 
     public void ShowNotification(string title, string message, int timeout = 2000)
     {
-        _pendingBalloonAction = null;
+        _pendingEditAction = null;
+        _pendingSaveAction = null;
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
             var toast = new Views.ToastNotification(title, message, timeout);
@@ -174,21 +176,22 @@ public class TrayIconService : IDisposable
         });
     }
 
-    public void ShowNotificationWithAction(string title, string message, int timeout, Action onClick)
+    public void ShowNotificationWithAction(string title, string message, int timeout, Action onEdit, Action? onSave = null)
     {
-        _pendingBalloonAction = onClick;
+        _pendingEditAction = onEdit;
+        _pendingSaveAction = onSave;
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
             var toast = new Views.ToastNotification(title, message, timeout, () =>
             {
                 RemoveKeyboardHook();
-                onClick?.Invoke();
+                onEdit?.Invoke();
             });
             toast.Show();
         });
 
-        // Install keyboard hook for E key
+        // Install keyboard hook for E/S keys
         InstallKeyboardHook();
 
         // Set timer to remove hook after timeout
@@ -202,14 +205,16 @@ public class TrayIconService : IDisposable
     private void OnBalloonTipClicked(object? sender, EventArgs e)
     {
         RemoveKeyboardHook();
-        _pendingBalloonAction?.Invoke();
-        _pendingBalloonAction = null;
+        _pendingEditAction?.Invoke();
+        _pendingEditAction = null;
+        _pendingSaveAction = null;
     }
 
     private void OnBalloonTipClosed(object? sender, EventArgs e)
     {
         RemoveKeyboardHook();
-        _pendingBalloonAction = null;
+        _pendingEditAction = null;
+        _pendingSaveAction = null;
     }
 
     private void InstallKeyboardHook()
@@ -244,16 +249,27 @@ public class TrayIconService : IDisposable
         if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
         {
             int vkCode = Marshal.ReadInt32(lParam);
-            // E key = 0x45 (69)
-            if (vkCode == 0x45 && _pendingBalloonAction != null)
+            // E key = 0x45 (69) - Open editor
+            if (vkCode == 0x45 && _pendingEditAction != null)
             {
                 Application.Current.Dispatcher.BeginInvoke(() =>
                 {
                     RemoveKeyboardHook();
-                    _pendingBalloonAction?.Invoke();
-                    _pendingBalloonAction = null;
+                    _pendingEditAction?.Invoke();
+                    _pendingEditAction = null;
+                    _pendingSaveAction = null;
                 });
-                // Don't consume the key - let it pass through
+            }
+            // S key = 0x53 (83) - Save directly
+            else if (vkCode == 0x53 && _pendingSaveAction != null)
+            {
+                Application.Current.Dispatcher.BeginInvoke(() =>
+                {
+                    RemoveKeyboardHook();
+                    _pendingSaveAction?.Invoke();
+                    _pendingEditAction = null;
+                    _pendingSaveAction = null;
+                });
             }
         }
         return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);

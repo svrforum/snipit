@@ -296,6 +296,7 @@
 
                         <!-- Base image -->
                         <Image x:Name="BaseImage" Stretch="None"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"/>
 

@@ -221,9 +221,10 @@ public partial class App : System.Windows.Application
             CopyBitmapToClipboard(bitmap);
             TrayIconService.Instance.ShowNotificationWithAction(
                 "캡처 완료",
-                "E키 또는 클릭으로 편집기 열기",
+                "E: 편집 | S: 저장 | 클릭: 편집",
                 3000,
-                OpenLastSilentCapture);
+                OpenLastSilentCapture,
+                SaveLastSilentCapture);
             return;
         }
 
@@ -307,6 +308,79 @@ public partial class App : System.Windows.Application
                     _currentEditor.Show();
                 }
             }
+        }
+    }
+
+    public static void SaveLastSilentCapture()
+    {
+        if (_lastSilentCapture == null)
+        {
+            TrayIconService.Instance.ShowNotification("SnipIt", "저장할 캡처가 없습니다", 2000);
+            return;
+        }
+
+        try
+        {
+            var config = AppSettingsConfig.Instance;
+            var format = config.DefaultFormat.ToLower();
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var defaultFilename = $"SnipIt_{timestamp}.{format}";
+            string fullPath;
+
+            if (config.SilentModeAutoSave)
+            {
+                // Auto save without dialog
+                fullPath = System.IO.Path.Combine(config.SavePath, defaultFilename);
+            }
+            else
+            {
+                // Show save dialog
+                var saveDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "캡처 저장",
+                    FileName = defaultFilename,
+                    InitialDirectory = config.SavePath,
+                    Filter = "PNG 이미지|*.png|JPEG 이미지|*.jpg|BMP 이미지|*.bmp|GIF 이미지|*.gif",
+                    FilterIndex = format switch
+                    {
+                        "jpg" or "jpeg" => 2,
+                        "bmp" => 3,
+                        "gif" => 4,
+                        _ => 1
+                    }
+                };
+
+                if (saveDialog.ShowDialog() != true)
+                {
+                    return; // User cancelled
+                }
+
+                fullPath = saveDialog.FileName;
+                format = System.IO.Path.GetExtension(fullPath).TrimStart('.').ToLower();
+            }
+
+            // Ensure directory exists
+            var directory = System.IO.Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
+            {
+                System.IO.Directory.CreateDirectory(directory);
+            }
+
+            // Save with appropriate format
+            System.Drawing.Imaging.ImageFormat imageFormat = format switch
+            {
+                "jpg" or "jpeg" => System.Drawing.Imaging.ImageFormat.Jpeg,
+                "bmp" => System.Drawing.Imaging.ImageFormat.Bmp,
+                "gif" => System.Drawing.Imaging.ImageFormat.Gif,
+                _ => System.Drawing.Imaging.ImageFormat.Png
+            };
+
+            _lastSilentCapture.Save(fullPath, imageFormat);
+            TrayIconService.Instance.ShowNotification("저장 완료", System.IO.Path.GetFileName(fullPath), 2000);
+        }
+        catch (Exception ex)
+        {
+            TrayIconService.Instance.ShowNotification("저장 실패", ex.Message, 3000);
         }
     }
 
