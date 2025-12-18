@@ -168,6 +168,14 @@ public partial class EditorWindow : Window
             }
         }
 
+        // ESC to close editor
+        if (e.Key == Key.Escape)
+        {
+            Close();
+            e.Handled = true;
+            return;
+        }
+
         var modifiers = Keyboard.Modifiers;
 
         // Ctrl shortcuts
