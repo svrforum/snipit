@@ -13,6 +13,7 @@ public class TrayIconService : IDisposable
 
     private NotifyIcon? _notifyIcon;
     private ContextMenuStrip? _contextMenu;
+    private ToolStripMenuItem? _openEditorMenuItem;
     private IntPtr _iconHandle = IntPtr.Zero;
 
     // Low-level keyboard hook for notification E key
@@ -60,8 +61,10 @@ public class TrayIconService : IDisposable
         _contextMenu.Items.Add(captureMenu);
         _contextMenu.Items.Add(new ToolStripSeparator());
 
-        // Hotkey re-register
-        _contextMenu.Items.Add("🔄 핫키 재등록", null, (s, e) => ReregisterHotkeys());
+        // Open editor (for silent mode captured image)
+        _openEditorMenuItem = new ToolStripMenuItem("편집기로 열기", null, (s, e) => OpenPendingEditor());
+        _openEditorMenuItem.Enabled = false;
+        _contextMenu.Items.Add(_openEditorMenuItem);
 
         // Settings
         _contextMenu.Items.Add(loc["Settings"], null, (s, e) => ShowSettings());
@@ -150,10 +153,27 @@ public class TrayIconService : IDisposable
         settingsWindow.ShowDialog();
     }
 
-    private void ReregisterHotkeys()
+    private void OpenPendingEditor()
     {
-        int count = HotkeyService.Instance.ReregisterAllHotkeys();
-        ShowNotification("SnipIt", $"핫키 {count}개 재등록 완료", 2000);
+        if (_pendingEditAction != null)
+        {
+            RemoveKeyboardHook();
+            var action = _pendingEditAction;
+            _pendingEditAction = null;
+            _pendingSaveAction = null;
+            UpdateEditorMenuState();
+
+            // Must run on WPF dispatcher thread
+            Application.Current?.Dispatcher.BeginInvoke(action);
+        }
+    }
+
+    private void UpdateEditorMenuState()
+    {
+        if (_openEditorMenuItem != null)
+        {
+            _openEditorMenuItem.Enabled = _pendingEditAction != null;
+        }
     }
 
     private void ExitApplication()
@@ -180,6 +200,7 @@ public class TrayIconService : IDisposable
     {
         _pendingEditAction = onEdit;
         _pendingSaveAction = onSave;
+        UpdateEditorMenuState();
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
@@ -187,6 +208,9 @@ public class TrayIconService : IDisposable
             {
                 RemoveKeyboardHook();
                 onEdit?.Invoke();
+                _pendingEditAction = null;
+                _pendingSaveAction = null;
+                UpdateEditorMenuState();
             });
             toast.Show();
         });
@@ -194,11 +218,15 @@ public class TrayIconService : IDisposable
         // Install keyboard hook for E/S keys
         InstallKeyboardHook();
 
-        // Set timer to remove hook after timeout
+        // Set timer to remove keyboard hook after timeout (but keep pending action for tray menu)
         _notificationTimer?.Dispose();
         _notificationTimer = new System.Threading.Timer(_ =>
         {
-            Application.Current?.Dispatcher.BeginInvoke(() => RemoveKeyboardHook());
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                RemoveKeyboardHook();
+                // Keep _pendingEditAction so user can still open editor from tray menu
+            });
         }, null, timeout + 500, System.Threading.Timeout.Infinite);
     }
 
@@ -208,6 +236,7 @@ public class TrayIconService : IDisposable
         _pendingEditAction?.Invoke();
         _pendingEditAction = null;
         _pendingSaveAction = null;
+        UpdateEditorMenuState();
     }
 
     private void OnBalloonTipClosed(object? sender, EventArgs e)
@@ -215,6 +244,7 @@ public class TrayIconService : IDisposable
         RemoveKeyboardHook();
         _pendingEditAction = null;
         _pendingSaveAction = null;
+        UpdateEditorMenuState();
     }
 
     private void InstallKeyboardHook()
@@ -258,6 +288,7 @@ public class TrayIconService : IDisposable
                     _pendingEditAction?.Invoke();
                     _pendingEditAction = null;
                     _pendingSaveAction = null;
+                    UpdateEditorMenuState();
                 });
             }
             // S key = 0x53 (83) - Save directly
@@ -269,6 +300,7 @@ public class TrayIconService : IDisposable
                     _pendingSaveAction?.Invoke();
                     _pendingEditAction = null;
                     _pendingSaveAction = null;
+                    UpdateEditorMenuState();
                 });
             }
         }
