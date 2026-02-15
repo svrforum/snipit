@@ -128,16 +128,49 @@ public static class ImageProcessingHelper
             {
                 bitmapData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, pixelFormat);
                 int stride = bitmapData.Stride;
+                int bufferSize = Math.Abs(stride) * height;
 
-                // Create buffer for the blurred result
-                byte[] buffer = new byte[Math.Abs(stride) * height];
-                Marshal.Copy(bitmapData.Scan0, buffer, 0, buffer.Length);
-                byte[] result = new byte[buffer.Length];
+                byte[] buffer = new byte[bufferSize];
+                Marshal.Copy(bitmapData.Scan0, buffer, 0, bufferSize);
+                byte[] temp = new byte[bufferSize];
 
                 unsafe
                 {
+                    // Horizontal pass: buffer -> temp
                     fixed (byte* srcPtr = buffer)
-                    fixed (byte* dstPtr = result)
+                    fixed (byte* dstPtr = temp)
+                    {
+                        for (int py = 0; py < height; py++)
+                        {
+                            for (int px = 0; px < width; px++)
+                            {
+                                int totalR = 0, totalG = 0, totalB = 0, count = 0;
+
+                                for (int kx = -kernelRadius; kx <= kernelRadius; kx++)
+                                {
+                                    int sx = px + kx;
+                                    if (sx < 0 || sx >= width) continue;
+
+                                    int offset = py * stride + sx * bytesPerPixel;
+                                    totalB += srcPtr[offset];
+                                    totalG += srcPtr[offset + 1];
+                                    totalR += srcPtr[offset + 2];
+                                    count++;
+                                }
+
+                                int dstOffset = py * stride + px * bytesPerPixel;
+                                dstPtr[dstOffset] = (byte)(totalB / count);
+                                dstPtr[dstOffset + 1] = (byte)(totalG / count);
+                                dstPtr[dstOffset + 2] = (byte)(totalR / count);
+                                if (bytesPerPixel == 4)
+                                    dstPtr[dstOffset + 3] = srcPtr[dstOffset + 3];
+                            }
+                        }
+                    }
+
+                    // Vertical pass: temp -> buffer
+                    fixed (byte* srcPtr = temp)
+                    fixed (byte* dstPtr = buffer)
                     {
                         for (int py = 0; py < height; py++)
                         {
@@ -150,17 +183,11 @@ public static class ImageProcessingHelper
                                     int sy = py + ky;
                                     if (sy < 0 || sy >= height) continue;
 
-                                    for (int kx = -kernelRadius; kx <= kernelRadius; kx++)
-                                    {
-                                        int sx = px + kx;
-                                        if (sx < 0 || sx >= width) continue;
-
-                                        int offset = sy * stride + sx * bytesPerPixel;
-                                        totalB += srcPtr[offset];
-                                        totalG += srcPtr[offset + 1];
-                                        totalR += srcPtr[offset + 2];
-                                        count++;
-                                    }
+                                    int offset = sy * stride + px * bytesPerPixel;
+                                    totalB += srcPtr[offset];
+                                    totalG += srcPtr[offset + 1];
+                                    totalR += srcPtr[offset + 2];
+                                    count++;
                                 }
 
                                 int dstOffset = py * stride + px * bytesPerPixel;
@@ -168,13 +195,13 @@ public static class ImageProcessingHelper
                                 dstPtr[dstOffset + 1] = (byte)(totalG / count);
                                 dstPtr[dstOffset + 2] = (byte)(totalR / count);
                                 if (bytesPerPixel == 4)
-                                    dstPtr[dstOffset + 3] = srcPtr[dstOffset + 3]; // Preserve alpha
+                                    dstPtr[dstOffset + 3] = srcPtr[dstOffset + 3];
                             }
                         }
                     }
                 }
 
-                Marshal.Copy(result, 0, bitmapData.Scan0, result.Length);
+                Marshal.Copy(buffer, 0, bitmapData.Scan0, bufferSize);
             }
             finally
             {

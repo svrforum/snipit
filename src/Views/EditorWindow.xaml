@@ -330,67 +330,83 @@
                     </Border>
 
                     <!-- History List -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl x:Name="HistoryList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Margin="8,4" Padding="8" CornerRadius="8" Cursor="Hand"
-                                            MouseLeftButtonDown="HistoryItem_Click">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="{StaticResource CardBrush}"/>
-                                                <Setter Property="BorderThickness" Value="2"/>
-                                                <Setter Property="BorderBrush" Value="Transparent"/>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
-                                                    </Trigger>
-                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                        <Setter Property="BorderBrush" Value="#3182F6"/>
-                                                        <Setter Property="Background" Value="#E8F2FF"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
+                    <ListBox x:Name="HistoryList" Grid.Row="1"
+                             SelectionChanged="HistoryList_SelectionChanged"
+                             KeyboardNavigation.DirectionalNavigation="Cycle"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             VirtualizingPanel.ScrollUnit="Pixel"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="8,4" Padding="8" CornerRadius="8" Cursor="Hand">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="#3182F6"/>
+                                                    <Setter Property="Background" Value="#E8F2FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
-                                            <!-- Number badge -->
-                                            <Border Grid.Row="0" Background="#3182F6" CornerRadius="4"
-                                                    HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,6">
-                                                <TextBlock Text="{Binding DisplayNumber}" FontSize="11" FontWeight="SemiBold"
-                                                           Foreground="White"/>
-                                            </Border>
+                                        <!-- Number badge -->
+                                        <Border Grid.Row="0" Background="#3182F6" CornerRadius="4"
+                                                HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,6">
+                                            <TextBlock Text="{Binding DisplayNumber}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="White"/>
+                                        </Border>
 
-                                            <!-- Thumbnail -->
-                                            <Border Grid.Row="1" CornerRadius="4" ClipToBounds="True"
-                                                    HorizontalAlignment="Center" BorderBrush="{StaticResource BorderBrush}"
-                                                    BorderThickness="1">
-                                                <Image x:Name="ThumbnailImage" Width="160" Height="100"
-                                                       Stretch="Uniform" Source="{Binding Thumbnail}"/>
-                                            </Border>
+                                        <!-- Thumbnail -->
+                                        <Border Grid.Row="1" CornerRadius="4" ClipToBounds="True"
+                                                HorizontalAlignment="Center" BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1">
+                                            <Image Width="160" Height="100"
+                                                   Stretch="Uniform" Source="{Binding Thumbnail}"/>
+                                        </Border>
 
-                                            <!-- Info -->
-                                            <Grid Grid.Row="2" Margin="0,6,0,0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding DisplayDateTime}" FontSize="11"
-                                                           Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding DisplaySize}" FontSize="10"
-                                                           Foreground="{StaticResource TextTertiaryBrush}"/>
-                                            </Grid>
+                                        <!-- Info -->
+                                        <Grid Grid.Row="2" Margin="0,6,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding DisplayDateTime}" FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplaySize}" FontSize="10"
+                                                       Foreground="{StaticResource TextTertiaryBrush}"/>
                                         </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
                     <!-- Footer -->
                     <Border Grid.Row="2" Padding="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">

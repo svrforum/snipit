@@ -25,8 +25,8 @@ namespace SnipIt.Views;
 public partial class EditorWindow : Window
 {
     private Bitmap _originalBitmap;
-    private readonly Stack<Bitmap> _undoStack = new();
-    private readonly Stack<Bitmap> _redoStack = new();
+    private readonly LinkedList<Bitmap> _undoStack = new();
+    private readonly LinkedList<Bitmap> _redoStack = new();
     private const int MaxUndoStackSize = 10;
 
     private string _currentTool = "Select";
@@ -68,6 +68,7 @@ public partial class EditorWindow : Window
     {
         _originalBitmap = bitmap;
         InitializeComponent();
+        HistoryList.ItemsSource = _historyItems;
         Loaded += EditorWindow_Loaded;
         KeyDown += EditorWindow_KeyDown;
         SourceInitialized += EditorWindow_SourceInitialized;
@@ -323,9 +324,10 @@ public partial class EditorWindow : Window
     {
         if (_undoStack.Count > 0)
         {
-            _redoStack.Push((Bitmap)_originalBitmap.Clone());
+            _redoStack.AddFirst((Bitmap)_originalBitmap.Clone());
             _originalBitmap.Dispose();
-            _originalBitmap = _undoStack.Pop();
+            _originalBitmap = _undoStack.First!.Value;
+            _undoStack.RemoveFirst();
             DrawingCanvas.Children.Clear();
             LoadImage(_originalBitmap);
             CopyToClipboard();
@@ -337,9 +339,10 @@ public partial class EditorWindow : Window
     {
         if (_redoStack.Count > 0)
         {
-            _undoStack.Push((Bitmap)_originalBitmap.Clone());
+            _undoStack.AddFirst((Bitmap)_originalBitmap.Clone());
             _originalBitmap.Dispose();
-            _originalBitmap = _redoStack.Pop();
+            _originalBitmap = _redoStack.First!.Value;
+            _redoStack.RemoveFirst();
             DrawingCanvas.Children.Clear();
             LoadImage(_originalBitmap);
             CopyToClipboard();
@@ -381,7 +384,6 @@ public partial class EditorWindow : Window
                 Index = history.Count - i, // 최신 항목이 #1
             });
         }
-        HistoryList.ItemsSource = _historyItems;
     }
 
     private void OnHistoryChanged()
@@ -399,9 +401,9 @@ public partial class EditorWindow : Window
         }
     }
 
-    private void HistoryItem_Click(object sender, MouseButtonEventArgs e)
+    private void HistoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is Border border && border.DataContext is HistoryItemViewModel viewModel)
+        if (HistoryList.SelectedItem is HistoryItemViewModel viewModel)
         {
             var bitmap = CaptureHistoryService.Instance.LoadImage(viewModel.Item);
             if (bitmap != null)
@@ -489,20 +491,13 @@ public partial class EditorWindow : Window
 
     private void SaveState()
     {
-        _undoStack.Push((Bitmap)_originalBitmap.Clone());
+        _undoStack.AddFirst((Bitmap)_originalBitmap.Clone());
 
         // Limit undo stack size to prevent excessive memory usage
         while (_undoStack.Count > MaxUndoStackSize)
         {
-            var oldest = _undoStack.ToArray()[_undoStack.Count - 1];
-            oldest.Dispose();
-            // Rebuild stack without oldest item
-            var items = _undoStack.ToArray();
-            _undoStack.Clear();
-            for (int i = 0; i < items.Length - 1; i++)
-            {
-                _undoStack.Push(items[items.Length - 2 - i]);
-            }
+            _undoStack.Last!.Value.Dispose();
+            _undoStack.RemoveLast();
         }
 
         // Clear redo stack
