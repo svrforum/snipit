@@ -296,7 +296,7 @@
 
                         <!-- Base image -->
                         <Image x:Name="BaseImage" Stretch="None"
-                               RenderOptions.BitmapScalingMode="NearestNeighbor"
+                               RenderOptions.BitmapScalingMode="HighQuality"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"/>
 
@@ -406,7 +406,7 @@
                                         <Border Grid.Row="1" CornerRadius="4" ClipToBounds="True"
                                                 HorizontalAlignment="Center" BorderBrush="{StaticResource BorderBrush}"
                                                 BorderThickness="1">
-                                            <Image Width="160" Height="100"
+                                            <Image Width="160" Height="100" RenderOptions.BitmapScalingMode="HighQuality"
                                                    Stretch="Uniform" Source="{Binding Thumbnail}"/>
                                         </Border>
 
@@ -481,7 +481,7 @@
                         <TextBlock Text="+" FontSize="14" FontWeight="Bold"/>
                     </Button>
                     <Button Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="8,0,0,0"
-                            Click="BtnZoom100_Click" ToolTip="원본 크기 (100%)">
+                            Click="BtnZoom100_Click" ToolTip="원본 픽셀 보기 (화면 1픽셀 = 이미지 1픽셀)">
                         <TextBlock Text="1:1" FontSize="11" FontWeight="SemiBold"/>
                     </Button>
                     <Button Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="4,0,0,0"

@@ -206,6 +206,8 @@ public sealed class HotkeyConfig
 /// </summary>
 public sealed class AppSettingsConfig
 {
+    public bool CheckForUpdates { get; set; } = true;
+    public bool AutoDownloadUpdates { get; set; } = false;
     // General settings
     public bool CaptureCursor { get; set; } = true;
     public bool CopyToClipboard { get; set; } = true;

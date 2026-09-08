@@ -22,3 +22,28 @@ Manual checks still needed: mixed-DPI monitors, region selection/cancellation,
 GIF capture through the save dialog, OCR with installed language packs, and rapid
 history switching while editing. The automated GIF limit test checks the transition
 into saving without opening a native save dialog.
+
+## Updater tests
+
+The regression runner additionally checks numeric versions, prerelease/downgrade
+filtering, allowed GitHub asset URLs, checksums, download cancellation, corrupted
+files/cache metadata, HTTP failures, replacement, rollback, file locks and the
+editor restart guard. All replacement tests use disposable fixtures.
+
+To also download and hash-check the real latest release (without executing it):
+
+```powershell
+dotnet run --project tests/SnipIt.Regression -c Release -- artifacts/previews --live-update
+```
+
+After publishing the single-file app, verify the actual helper process with:
+
+```powershell
+./tests/Test-UpdateHelper.ps1 -SnipItExe ./Publish/SnipIt.exe
+```
+
+This builds two harmless console fixtures and verifies readiness, parent exit,
+replacement and restart using paths with spaces and Korean characters. It does
+not replace an installed SnipIt, register hotkeys or open the real app's UI.
+The automatic rollback covers replacement/initial process-launch failure; it is
+not a guarantee against crashes later in a new version's session.

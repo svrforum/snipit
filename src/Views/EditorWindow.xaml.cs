@@ -371,23 +371,22 @@ public partial class EditorWindow : Window
             StatusText.Text = "클립보드 복사 실패";
         }
     }
-    private void LoadHistory()
-    {
-        _historyItems.Clear();
-        var history = CaptureHistoryService.Instance.History.ToList();
-        for (int i = 0; i < history.Count; i++)
-        {
-            var item = history[i];
-            var thumbnail = CaptureHistoryService.Instance.LoadThumbnail(item);
-            _historyItems.Add(new HistoryItemViewModel
-            {
-                Item = item,
-                Thumbnail = thumbnail,
-                Index = history.Count - i, // 최신 항목이 #1
-            });
-        }
-    }
+    private int _historyRefreshVersion;
 
+    private async void LoadHistory()
+    {
+        var version = ++_historyRefreshVersion;
+        var history = CaptureHistoryService.Instance.History.ToList();
+        var items = await Task.Run(() => history.Select((item, i) => new HistoryItemViewModel
+        {
+            Item = item,
+            Thumbnail = CaptureHistoryService.Instance.LoadThumbnail(item),
+            Index = history.Count - i,
+        }).ToList());
+        if (version != _historyRefreshVersion) return;
+        _historyItems.Clear();
+        foreach (var item in items) _historyItems.Add(item);
+    }
     private void OnHistoryChanged()
     {
         // Use BeginInvoke to avoid deadlock when called from UI thread
@@ -508,8 +507,8 @@ public partial class EditorWindow : Window
                         double availableWidth = canvasArea.ActualWidth - 40;
                         double availableHeight = canvasArea.ActualHeight - 40;
 
-                        double scaleX = availableWidth / imageWidth;
-                        double scaleY = availableHeight / imageHeight;
+                        double scaleX = availableWidth * VisualTreeHelper.GetDpi(this).DpiScaleX / imageWidth;
+                        double scaleY = availableHeight * VisualTreeHelper.GetDpi(this).DpiScaleY / imageHeight;
                         double scale = Math.Min(scaleX, scaleY);
 
                         // Cap at 100% max
@@ -986,6 +985,7 @@ public partial class EditorWindow : Window
 
     private Bitmap RenderFinalImage()
     {
+        if (DrawingCanvas.Children.Count == 0) return (Bitmap)_originalBitmap.Clone();
         int width = _originalBitmap.Width;
         int height = _originalBitmap.Height;
 
@@ -1572,8 +1572,8 @@ public partial class EditorWindow : Window
     private void SetZoom(double level)
     {
         _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, level));
-        CanvasScale.ScaleX = _zoomLevel;
-        CanvasScale.ScaleY = _zoomLevel;
+        CanvasScale.ScaleX = _zoomLevel / VisualTreeHelper.GetDpi(this).DpiScaleX;
+        CanvasScale.ScaleY = _zoomLevel / VisualTreeHelper.GetDpi(this).DpiScaleY;
         UpdateZoomText();
     }
 
@@ -1608,8 +1608,8 @@ public partial class EditorWindow : Window
         double imageWidth = _originalBitmap.Width;
         double imageHeight = _originalBitmap.Height;
 
-        double scaleX = viewportWidth / imageWidth;
-        double scaleY = viewportHeight / imageHeight;
+        double scaleX = viewportWidth * VisualTreeHelper.GetDpi(this).DpiScaleX / imageWidth;
+        double scaleY = viewportHeight * VisualTreeHelper.GetDpi(this).DpiScaleY / imageHeight;
         double fitZoom = Math.Min(scaleX, scaleY);
 
         SetZoom(Math.Min(fitZoom, 1.0)); // Don't zoom in beyond 100%
@@ -1656,9 +1656,16 @@ public partial class EditorWindow : Window
     [System.Runtime.InteropServices.DllImport("gdi32.dll")]
     private static extern bool DeleteObject(IntPtr hObject);
 
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+    {
+        base.OnDpiChanged(oldDpi, newDpi);
+        SetZoom(_zoomLevel);
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         CaptureHistoryService.Instance.HistoryChanged -= OnHistoryChanged;
+        ++_historyRefreshVersion;
         ++_historyLoadVersion;
         _originalBitmap?.Dispose();
         foreach (var bitmap in _undoStack) bitmap.Dispose();

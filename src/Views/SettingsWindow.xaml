@@ -103,7 +103,16 @@
                 <Grid>
                     <!-- General Settings Panel -->
                     <StackPanel x:Name="PanelGeneral">
-                        <TextBlock Text="기본 설정" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="업데이트" Style="{StaticResource SectionTitleStyle}"/>
+                        <Border Style="{StaticResource SettingRowStyle}">
+                            <StackPanel>
+                                <CheckBox x:Name="ChkUpdates" Content="새 버전 자동 확인"/>
+                                <CheckBox x:Name="ChkAutoDownload" Content="업데이트 자동 다운로드" Margin="0,14,0,0" IsEnabled="{Binding IsChecked, ElementName=ChkUpdates}"/>
+                                <TextBlock Text="시작 후 및 6시간마다 확인합니다. 설치·재시작은 직접 선택합니다." TextWrapping="Wrap" FontSize="11" Margin="0,12,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <Button Content="업데이트 열기" Style="{StaticResource SecondaryButtonStyle}" Margin="0,12,0,0" Click="Update_Click"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="기본 설정" Style="{StaticResource SectionTitleStyle}" Margin="0,16,0,16"/>
 
                         <Border Style="{StaticResource SettingRowStyle}">
                             <CheckBox x:Name="ChkCaptureCursor" Content="마우스 커서 포함"/>

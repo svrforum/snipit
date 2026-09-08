@@ -70,10 +70,10 @@ public sealed class CaptureHistoryService : IDisposable
         item.ImagePath = imagePath;
 
         // Create and save thumbnail using high-performance helper
-        var thumbnailPath = Path.Combine(_historyFolder, $"{item.Id}_thumb.jpg");
-        using (var thumbnail = ImageProcessingHelper.CreateThumbnail(bitmap, 160, 100))
+        var thumbnailPath = Path.Combine(_historyFolder, $"{item.Id}_thumb.png");
+        using (var thumbnail = ImageProcessingHelper.CreateThumbnail(bitmap, 480, 300))
         {
-            SaveJpeg(thumbnail, thumbnailPath, 85);
+            thumbnail.Save(thumbnailPath, ImageFormat.Png);
         }
         item.ThumbnailPath = thumbnailPath;
 
@@ -119,39 +119,16 @@ public sealed class CaptureHistoryService : IDisposable
         using var fileStream = new FileStream(item.ImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var tempBitmap = new Bitmap(fileStream);
 
-        // Create a new independent bitmap by drawing the original onto it
-        var result = new Bitmap(tempBitmap.Width, tempBitmap.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(result))
-        {
-            g.DrawImage(tempBitmap, 0, 0, tempBitmap.Width, tempBitmap.Height);
-        }
-        return result;
+        return tempBitmap.Clone(new Rectangle(0, 0, tempBitmap.Width, tempBitmap.Height), PixelFormat.Format32bppArgb);
     }
 
-    public async Task<Bitmap?> LoadImageAsync(CaptureHistoryItem item, CancellationToken cancellationToken = default)
-    {
-        if (!File.Exists(item.ImagePath))
-            return null;
-
-        return await Task.Run(() =>
-        {
-            // Create a fully independent bitmap that doesn't rely on stream
-            using var fileStream = new FileStream(item.ImagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var tempBitmap = new Bitmap(fileStream);
-
-            var result = new Bitmap(tempBitmap.Width, tempBitmap.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            using (var g = Graphics.FromImage(result))
-            {
-                g.DrawImage(tempBitmap, 0, 0, tempBitmap.Width, tempBitmap.Height);
-            }
-            return result;
-        }, cancellationToken);
-    }
-
+    public Task<Bitmap?> LoadImageAsync(CaptureHistoryItem item, CancellationToken cancellationToken = default) =>
+        Task.Run(() => LoadImage(item), cancellationToken);
     public BitmapImage? LoadThumbnail(CaptureHistoryItem item)
     {
         if (item.CachedThumbnail is { } cached) return cached;
-        if (!File.Exists(item.ThumbnailPath))
+        var path = item.ThumbnailPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase) && File.Exists(item.ThumbnailPath) ? item.ThumbnailPath : item.ImagePath;
+        if (!File.Exists(path))
             return null;
 
         try
@@ -159,7 +136,8 @@ public sealed class CaptureHistoryService : IDisposable
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        bitmap.UriSource = new Uri(item.ThumbnailPath, UriKind.Absolute);
+        bitmap.DecodePixelWidth = Math.Min(Math.Max(item.Width, 1), 480);
+        bitmap.UriSource = new Uri(path, UriKind.Absolute);
         bitmap.EndInit();
         bitmap.Freeze();
         item.CachedThumbnail = bitmap;
@@ -225,26 +203,6 @@ public sealed class CaptureHistoryService : IDisposable
         }
     }
 
-    private void SaveJpeg(Bitmap bitmap, string path, int quality)
-    {
-        var encoder = GetJpegEncoder();
-        if (encoder is null)
-        {
-            bitmap.Save(path, ImageFormat.Jpeg);
-            return;
-        }
-
-        using var encoderParams = new EncoderParameters(1);
-        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, (long)quality);
-        bitmap.Save(path, encoder, encoderParams);
-    }
-
-    private static ImageCodecInfo? GetJpegEncoder()
-    {
-        return ImageCodecInfo.GetImageDecoders()
-            .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
-    }
-
     private void LoadHistory()
     {
         var indexPath = Path.Combine(_historyFolder, "index.json");
@@ -258,7 +216,7 @@ public sealed class CaptureHistoryService : IDisposable
 
             if (items is not null)
             {
-                foreach (var item in items.Where(i => File.Exists(i.ImagePath) && File.Exists(i.ThumbnailPath)))
+                foreach (var item in items.Where(i => File.Exists(i.ImagePath)))
                 {
                     _history.Add(item);
                 }

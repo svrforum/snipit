@@ -30,6 +30,7 @@ internal static class Program
         Environment.SetEnvironmentVariable("SNIPIT_DATA_DIRECTORY", directory);
         try
         {
+            UpdateTests.RunAsync(directory, args.Contains("--live-update")).GetAwaiter().GetResult();
             using var history = (CaptureHistoryService)Activator.CreateInstance(
                 typeof(CaptureHistoryService), Private, null, [directory], null)!;
             using var bitmap = new Bitmap(40, 30, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
@@ -48,6 +49,22 @@ internal static class Program
             using (var reopened = (CaptureHistoryService)Activator.CreateInstance(typeof(CaptureHistoryService), Private, null, [directory], null)!)
                 Check(reopened.History.Count == 2, "History index survives reopening");
 
+            using (var pattern = new Bitmap(960, 600, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+            {
+                for (int y = 0; y < pattern.Height; y++)
+                    for (int x = 0; x < pattern.Width; x++)
+                        pattern.SetPixel(x, y, System.Drawing.Color.FromArgb(255, x % 256, y % 256, (x + y) % 256));
+                var item = history.AddCapture(pattern);
+                Check(item.ThumbnailPath.EndsWith(".png") && history.LoadThumbnail(item)?.PixelWidth == 480,
+                    "History uses lossless 480px thumbnails");
+                using var restored = history.LoadImage(item)!;
+                bool exact = restored.Size == pattern.Size;
+                for (int y = 0; y < pattern.Height && exact; y++)
+                    for (int x = 0; x < pattern.Width && exact; x++)
+                        exact = restored.GetPixel(x, y).ToArgb() == pattern.GetPixel(x, y).ToArgb();
+                Check(exact, "History PNG roundtrip preserves every source pixel");
+                history.DeleteHistoryItem(item);
+            }
             using (var recorder = new GifRecorderService())
             {
                 Call(recorder, "ProcessFrame", bitmap.Clone());
@@ -100,6 +117,7 @@ internal static class Program
             var original = new Bitmap(80, 60);
             using (var graphics = Graphics.FromImage(original)) graphics.Clear(System.Drawing.Color.Red);
             var editor = new EditorWindow(original);
+            Check(!SnipIt.App.CanRestartForUpdate, "Updater blocks restart while an editor exists");
             Call(editor, "LoadImage", original);
             Call(editor, "SaveState");
             Call(editor, "Undo");
@@ -108,6 +126,14 @@ internal static class Program
             Call(editor, "Redo");
             Check(ReferenceEquals(typeof(EditorWindow).GetField("_originalBitmap", Private)!.GetValue(editor), original),
                 "Redo restores the same image instance");
+            Call(editor, "SetZoom", 1.0);
+            var scale = (ScaleTransform)editor.FindName("CanvasScale");
+            Check(Math.Abs(scale.ScaleX * VisualTreeHelper.GetDpi(editor).DpiScaleX - 1) < 0.0001,
+                "100 percent zoom maps source pixels to physical screen pixels");
+            Call(editor, "SetZoom", 0.37);
+            using (var unedited = (Bitmap)Call(editor, "RenderFinalImage")!)
+                Check(unedited.Size == original.Size && unedited.GetPixel(40, 30).ToArgb() == original.GetPixel(40, 30).ToArgb(),
+                    "Fractional preview zoom does not resample exported originals");
             var canvas = (Canvas)editor.FindName("DrawingCanvas");
             canvas.Measure(new System.Windows.Size(80, 60));
             canvas.Arrange(new Rect(0, 0, 80, 60));
@@ -130,24 +156,33 @@ internal static class Program
                 settingsContent.UpdateLayout();
                 SavePreview(settingsContent, 760, 680, Path.Combine(args[0], "settings-window.png"));
                 settings.Close();
+                var updates = new UpdateWindow();
+                var updateContent = (FrameworkElement)updates.Content;
+                ((Grid)updateContent).Background = updates.Background;
+                updateContent.Measure(new System.Windows.Size(484, 514));
+                updateContent.Arrange(new Rect(0, 0, 484, 514));
+                updateContent.UpdateLayout();
+                SavePreview(updateContent, 484, 514, Path.Combine(args[0], "update-window.png"));
+                updates.Close();
             }
             editor.Close();
+            Check(SnipIt.App.CanRestartForUpdate, "Updater allows restart after closing editor");
             var main = new MainWindow();
             Call(main, "RefreshShortcutLabels");
             Check(((TextBlock)main.FindName("RegionShortcutText")).Text == AppSettingsConfig.Instance.RegionHotkey.ToString(),
                 "Main window displays configured hotkeys");
             var content = (FrameworkElement)main.Content;
             ((Grid)content).Background = main.Background;
-            foreach (int width in new[] { 480, 580 })
+            foreach (int width in new[] { 360, 400 })
             {
-                content.Measure(new System.Windows.Size(width, 740));
-                content.Arrange(new Rect(0, 0, width, 740));
+                content.Measure(new System.Windows.Size(width, 330));
+                content.Arrange(new Rect(0, 0, width, 330));
                 content.UpdateLayout();
                 Check(content.DesiredSize.Width <= width, $"Main layout fits {width}px width");
                 if (args.Length > 0)
                 {
                     Directory.CreateDirectory(args[0]);
-                    var render = new RenderTargetBitmap(width, 740, 96, 96, PixelFormats.Pbgra32);
+                    var render = new RenderTargetBitmap(width, 330, 96, 96, PixelFormats.Pbgra32);
                     render.Render(content);
                     var encoder = new PngBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create(render));

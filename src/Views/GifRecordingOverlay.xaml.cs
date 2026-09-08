@@ -556,6 +556,7 @@ public partial class GifRecordingOverlay : Window
         // Close this window
         Close();
 
+        Interlocked.Increment(ref App.PendingGifSaves);
         // Save GIF in background
         Task.Run(async () =>
         {
@@ -566,6 +567,7 @@ public partial class GifRecordingOverlay : Window
             finally
             {
                 recorder.Dispose();
+                Interlocked.Decrement(ref App.PendingGifSaves);
             }
         });
     }

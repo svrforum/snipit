@@ -70,6 +70,8 @@ public partial class MainWindow : Window
         RefreshShortcutLabels();
     }
 
+    private void Update_Click(object sender, RoutedEventArgs e) => App.ShowUpdates();
+
     private void BtnHelp_Click(object sender, RoutedEventArgs e)
     {
         var helpWindow = new HelpWindow();

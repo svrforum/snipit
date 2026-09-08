@@ -66,6 +66,7 @@ public class TrayIconService : IDisposable
         _openEditorMenuItem.Enabled = false;
         _contextMenu.Items.Add(_openEditorMenuItem);
 
+        _contextMenu.Items.Add("업데이트 확인", null, (_, _) => App.ShowUpdates());
         // Settings
         _contextMenu.Items.Add(loc["Settings"], null, (s, e) => ShowSettings());
         _contextMenu.Items.Add(new ToolStripSeparator());
@@ -149,6 +150,7 @@ public class TrayIconService : IDisposable
 
     private void ShowSettings()
     {
+        if (App.UpdateRestartPending) return;
         var settingsWindow = new Views.SettingsWindow();
         settingsWindow.ShowDialog();
     }

@@ -228,7 +228,7 @@ public static class ImageProcessingHelper
     {
         double ratioX = (double)maxWidth / source.Width;
         double ratioY = (double)maxHeight / source.Height;
-        double ratio = Math.Min(ratioX, ratioY);
+        double ratio = Math.Min(1.0, Math.Min(ratioX, ratioY));
 
         int newWidth = Math.Max(1, (int)(source.Width * ratio));
         int newHeight = Math.Max(1, (int)(source.Height * ratio));

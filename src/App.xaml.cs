@@ -11,8 +11,36 @@ public partial class App : System.Windows.Application
     private static bool _isCapturing = false;
     private static System.Drawing.Bitmap? _lastSilentCapture;
 
-    protected override void OnStartup(System.Windows.StartupEventArgs e)
+    private static Views.UpdateWindow? _updateWindow;
+    internal static int PendingGifSaves;
+    internal static bool UpdateRestartPending;
+    internal static bool CanRestartForUpdate => !_isCapturing && Volatile.Read(ref PendingGifSaves) == 0 &&
+        !Current.Windows.OfType<Views.EditorWindow>().Any() &&
+        !Current.Windows.OfType<Views.CaptureOverlay>().Any() &&
+        !Current.Windows.OfType<Views.GifRecordingOverlay>().Any() &&
+        !Current.Windows.OfType<Views.SettingsWindow>().Any();
+
+    public static void ShowUpdates()
     {
+        if (_updateWindow != null) { _updateWindow.Activate(); return; }
+        _updateWindow = new Views.UpdateWindow();
+        _updateWindow.Closed += (_, _) => _updateWindow = null;
+        _updateWindow.Show();
+    }
+
+    protected override async void OnStartup(System.Windows.StartupEventArgs e)
+    {
+        if (e.Args.FirstOrDefault() == "--apply-update")
+        {
+
+            try { await UpdateInstaller.RunHelperAsync(e.Args); Shutdown(); }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show("업데이트를 완료하지 못했습니다. 기존 실행 파일 또는 .previous 백업을 확인해 주세요.\n" + ex.Message, "SnipIt 업데이트");
+                Shutdown(1);
+            }
+            return;
+        }
         base.OnStartup(e);
 
         // Load saved settings
@@ -45,6 +73,9 @@ public partial class App : System.Windows.Application
 
         // Register hotkeys from saved config
         RegisterHotkeysFromConfig(config);
+        MainWindow = new Views.MainWindow();
+        if (!config.StartMinimized) MainWindow.Show();
+        _ = UpdateService.Instance.RunAutomaticChecksAsync();
     }
 
     private void RegisterHotkeysFromConfig(AppSettingsConfig config)
@@ -98,7 +129,7 @@ public partial class App : System.Windows.Application
 
     public static async void CaptureFullScreen()
     {
-        if (_isCapturing) return;
+        if (_isCapturing || UpdateRestartPending) return;
         _isCapturing = true;
 
         try
@@ -123,7 +154,7 @@ public partial class App : System.Windows.Application
 
     public static async void CaptureActiveWindow()
     {
-        if (_isCapturing) return;
+        if (_isCapturing || UpdateRestartPending) return;
         _isCapturing = true;
 
         try
@@ -148,7 +179,7 @@ public partial class App : System.Windows.Application
 
     public static async void CaptureRegion()
     {
-        if (_isCapturing) return;
+        if (_isCapturing || UpdateRestartPending) return;
         _isCapturing = true;
 
         try
@@ -175,7 +206,7 @@ public partial class App : System.Windows.Application
 
     public static async void CaptureGif()
     {
-        if (_isCapturing) return;
+        if (_isCapturing || UpdateRestartPending) return;
         _isCapturing = true;
 
         try
@@ -312,6 +343,7 @@ public partial class App : System.Windows.Application
 
     public static void OpenLastSilentCapture()
     {
+        if (UpdateRestartPending) return;
         if (_lastSilentCapture != null)
         {
             // Close existing editor window
@@ -424,6 +456,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(System.Windows.ExitEventArgs e)
     {
+        UpdateService.Instance.Stop();
         _hotkeyService?.Dispose();
         _trayIconService?.Dispose();
         base.OnExit(e);

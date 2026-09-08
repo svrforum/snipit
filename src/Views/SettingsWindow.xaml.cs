@@ -58,6 +58,8 @@ public partial class SettingsWindow : Window
 
     private void LoadSettings()
     {
+        ChkUpdates.IsChecked = _config.CheckForUpdates;
+        ChkAutoDownload.IsChecked = _config.AutoDownloadUpdates;
         // General settings
         ChkCaptureCursor.IsChecked = _config.CaptureCursor;
         ChkCopyToClipboard.IsChecked = _config.CopyToClipboard;
@@ -200,6 +202,8 @@ public partial class SettingsWindow : Window
 
     private void BtnSave_Click(object sender, RoutedEventArgs e)
     {
+        ChkUpdates.IsChecked = _config.CheckForUpdates;
+        ChkAutoDownload.IsChecked = _config.AutoDownloadUpdates;
         // General settings
         _config.CaptureCursor = ChkCaptureCursor.IsChecked ?? false;
         _config.CopyToClipboard = ChkCopyToClipboard.IsChecked ?? false;
@@ -298,6 +302,8 @@ public partial class SettingsWindow : Window
         _config.EditorShortcuts.Crop = EditorKeyCrop.ShortcutKey;
 
         // Save to file
+        _config.CheckForUpdates = ChkUpdates.IsChecked == true;
+        _config.AutoDownloadUpdates = ChkAutoDownload.IsChecked == true;
         _config.Save();
 
         // Apply to runtime settings
@@ -341,6 +347,8 @@ public partial class SettingsWindow : Window
             _config.GifHotkey.Key,
             App.CaptureGif);
     }
+
+    private void Update_Click(object sender, RoutedEventArgs e) => App.ShowUpdates();
 
     private void BtnCancel_Click(object sender, RoutedEventArgs e)
     {
