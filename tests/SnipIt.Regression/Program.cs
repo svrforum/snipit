@@ -113,6 +113,24 @@ internal static class Program
             canvas.Arrange(new Rect(0, 0, 80, 60));
             using (var rendered = (Bitmap)Call(editor, "RenderFinalImage")!)
                 Check(rendered.GetPixel(40, 30).ToArgb() == System.Drawing.Color.Red.ToArgb(), "Direct native render preserves image pixels");
+            if (args.Length > 0)
+            {
+                var editorContent = (FrameworkElement)editor.Content;
+                ((Grid)editorContent).Background = editor.Background;
+                editorContent.Measure(new System.Windows.Size(1150, 700));
+                editorContent.Arrange(new Rect(0, 0, 1150, 700));
+                editorContent.UpdateLayout();
+                SavePreview(editorContent, 1150, 700, Path.Combine(args[0], "editor-window.png"));
+                var settings = new SettingsWindow();
+                Call(settings, "LoadSettings");
+                var settingsContent = (FrameworkElement)settings.Content;
+                ((Grid)settingsContent).Background = settings.Background;
+                settingsContent.Measure(new System.Windows.Size(760, 680));
+                settingsContent.Arrange(new Rect(0, 0, 760, 680));
+                settingsContent.UpdateLayout();
+                SavePreview(settingsContent, 760, 680, Path.Combine(args[0], "settings-window.png"));
+                settings.Close();
+            }
             editor.Close();
             var main = new MainWindow();
             Call(main, "RefreshShortcutLabels");
@@ -122,14 +140,14 @@ internal static class Program
             ((Grid)content).Background = main.Background;
             foreach (int width in new[] { 480, 580 })
             {
-                content.Measure(new System.Windows.Size(width, 580));
-                content.Arrange(new Rect(0, 0, width, 580));
+                content.Measure(new System.Windows.Size(width, 740));
+                content.Arrange(new Rect(0, 0, width, 740));
                 content.UpdateLayout();
                 Check(content.DesiredSize.Width <= width, $"Main layout fits {width}px width");
                 if (args.Length > 0)
                 {
                     Directory.CreateDirectory(args[0]);
-                    var render = new RenderTargetBitmap(width, 580, 96, 96, PixelFormats.Pbgra32);
+                    var render = new RenderTargetBitmap(width, 740, 96, 96, PixelFormats.Pbgra32);
                     render.Render(content);
                     var encoder = new PngBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create(render));
@@ -142,5 +160,16 @@ internal static class Program
             Console.WriteLine("All regression checks passed.");
         }
         finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    private static void SavePreview(FrameworkElement content, int width, int height, string path)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        var render = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        render.Render(content);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(render));
+        using var output = File.Create(path);
+        encoder.Save(output);
     }
 }

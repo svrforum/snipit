@@ -2,10 +2,10 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:SnipIt.Controls"
-        Title="설정"
-        Width="720" Height="640"
+        Title="SnipIt - 설정" FontFamily="Malgun Gothic" UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        Width="760" Height="680" MinWidth="720" MinHeight="560"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
         Background="{StaticResource SurfaceBrush}"
         Icon="pack://application:,,,/Assets/icon.ico">
 
@@ -52,8 +52,8 @@
         <!-- Setting Row Style -->
         <Style x:Key="SettingRowStyle" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="18,16"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
     </Window.Resources>

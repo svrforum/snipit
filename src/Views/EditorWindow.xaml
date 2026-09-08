@@ -1,7 +1,7 @@
 <Window x:Class="SnipIt.Views.EditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SnipIt - 편집기"
+        Title="SnipIt - 편집기" FontFamily="Malgun Gothic" UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         Width="1150" Height="700"
         MinWidth="900" MinHeight="500"
         WindowStartupLocation="CenterScreen"
@@ -19,23 +19,20 @@
         <Border Grid.Row="0" Background="{StaticResource BackgroundBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
                 Padding="16,10">
+            <StackPanel>
             <WrapPanel>
                 <!-- File operations -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
-                    <Button x:Name="BtnSave" Style="{StaticResource ToolButtonStyle}" ToolTip="저장 (Ctrl+S)" Click="BtnSave_Click">
-                        <TextBlock Text="💾" FontSize="18"/>
-                    </Button>
-                    <Button x:Name="BtnCopy" Style="{StaticResource ToolButtonStyle}" ToolTip="클립보드에 복사 (Ctrl+C)" Click="BtnCopy_Click">
-                        <TextBlock Text="📋" FontSize="18"/>
-                    </Button>
-                    <Button x:Name="BtnOcr" Style="{StaticResource ToolButtonStyle}" Click="BtnOcr_Click">
+                    <Button x:Name="BtnSave" AutomationProperties.Name="저장" Style="{StaticResource PrimaryButtonStyle}" Padding="14,8" Margin="0,2,6,2" FontSize="12" ToolTip="저장 (Ctrl+S)" Click="BtnSave_Click" Content="저장"/>
+                    <Button x:Name="BtnCopy" AutomationProperties.Name="클립보드 복사" Style="{StaticResource SecondaryButtonStyle}" Padding="14,8" Margin="0,2,6,2" FontSize="12" ToolTip="클립보드에 복사 (Ctrl+C)" Click="BtnCopy_Click" Content="복사"/>
+                    <Button x:Name="BtnOcr" AutomationProperties.Name="텍스트 인식" Style="{StaticResource ToolButtonStyle}" Click="BtnOcr_Click">
                         <Button.ToolTip>
                             <StackPanel>
                                 <TextBlock Text="텍스트 인식 (OCR)" FontWeight="SemiBold"/>
                                 <TextBlock Text="이미지에서 텍스트를 추출하여 복사" Foreground="Gray" FontSize="11"/>
                             </StackPanel>
                         </Button.ToolTip>
-                        <TextBlock Text="🔤" FontSize="18"/>
+                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8D2;" FontSize="18"/>
                     </Button>
                 </StackPanel>
 
@@ -43,10 +40,10 @@
 
                 <!-- Undo/Redo -->
                 <StackPanel Orientation="Horizontal" Margin="8,0">
-                    <Button x:Name="BtnUndo" Style="{StaticResource ToolButtonStyle}" ToolTip="실행 취소 (Ctrl+Z)" Click="BtnUndo_Click">
+                    <Button x:Name="BtnUndo" AutomationProperties.Name="실행 취소" Style="{StaticResource ToolButtonStyle}" ToolTip="실행 취소 (Ctrl+Z)" Click="BtnUndo_Click">
                         <TextBlock Text="↶" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </Button>
-                    <Button x:Name="BtnRedo" Style="{StaticResource ToolButtonStyle}" ToolTip="다시 실행 (Ctrl+Y)" Click="BtnRedo_Click">
+                    <Button x:Name="BtnRedo" AutomationProperties.Name="다시 실행" Style="{StaticResource ToolButtonStyle}" ToolTip="다시 실행 (Ctrl+Y)" Click="BtnRedo_Click">
                         <TextBlock Text="↷" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </Button>
                 </StackPanel>
@@ -55,7 +52,7 @@
 
                 <!-- Drawing tools -->
                 <StackPanel Orientation="Horizontal" Margin="8,0">
-                    <ToggleButton x:Name="BtnSelect" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnSelect" AutomationProperties.Name="선택" Style="{StaticResource ToolToggleButtonStyle}"
                                   IsChecked="True" Click="ToolButton_Click" Tag="Select">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -63,9 +60,9 @@
                                 <TextBlock Text="단축키: V" Foreground="Gray" FontSize="11"/>
                             </StackPanel>
                         </ToggleButton.ToolTip>
-                        <TextBlock Text="⬚" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8B0;" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnPen" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnPen" AutomationProperties.Name="펜" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Pen">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -73,9 +70,9 @@
                                 <TextBlock Text="단축키: P" Foreground="Gray" FontSize="11"/>
                             </StackPanel>
                         </ToggleButton.ToolTip>
-                        <TextBlock Text="✏" FontSize="18"/>
+                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="18"/>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnArrow" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnArrow" AutomationProperties.Name="화살표" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Arrow">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -85,7 +82,7 @@
                         </ToggleButton.ToolTip>
                         <TextBlock Text="➔" FontSize="18"/>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnLine" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnLine" AutomationProperties.Name="직선" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Line">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -95,7 +92,7 @@
                         </ToggleButton.ToolTip>
                         <TextBlock Text="╱" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnRectangle" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnRectangle" AutomationProperties.Name="사각형" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Rectangle">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -105,7 +102,7 @@
                         </ToggleButton.ToolTip>
                         <TextBlock Text="▢" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnEllipse" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnEllipse" AutomationProperties.Name="타원" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Ellipse">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -115,7 +112,7 @@
                         </ToggleButton.ToolTip>
                         <TextBlock Text="◯" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnText" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnText" AutomationProperties.Name="텍스트" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Text">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -125,7 +122,7 @@
                         </ToggleButton.ToolTip>
                         <TextBlock Text="A" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnHighlight" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnHighlight" AutomationProperties.Name="형광펜" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Highlight">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -144,7 +141,7 @@
                                        Margin="0,0,0,2"/>
                         </Grid>
                     </ToggleButton>
-                    <ToggleButton x:Name="BtnBlur" Style="{StaticResource ToolToggleButtonStyle}"
+                    <ToggleButton x:Name="BtnBlur" AutomationProperties.Name="모자이크" Style="{StaticResource ToolToggleButtonStyle}"
                                   Click="ToolButton_Click" Tag="Blur">
                         <ToggleButton.ToolTip>
                             <StackPanel>
@@ -168,6 +165,8 @@
 
                 <Border Width="1" Background="{StaticResource BorderBrush}" Margin="8,6"/>
 
+            </WrapPanel>
+            <WrapPanel Margin="0,8,0,0">
                 <!-- Color picker -->
                 <StackPanel Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center">
                     <TextBlock Text="색상" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"
@@ -270,17 +269,18 @@
                         Visibility="Collapsed"/>
 
                 <!-- Crop -->
-                <Button x:Name="BtnCrop" Style="{StaticResource ToolButtonStyle}" ToolTip="자르기" Click="BtnCrop_Click" Margin="8,0">
-                    <TextBlock Text="✂" FontSize="18"/>
+                <Button x:Name="BtnCrop" AutomationProperties.Name="자르기" Style="{StaticResource ToolButtonStyle}" ToolTip="자르기" Click="BtnCrop_Click" Margin="8,0">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7A8;" FontSize="18"/>
                 </Button>
             </WrapPanel>
+            </StackPanel>
         </Border>
 
         <!-- Main content area with sidebar -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="232"/>
             </Grid.ColumnDefinitions>
 
             <!-- Canvas area -->
@@ -288,7 +288,7 @@
                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                           Padding="24" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
                 <Border Background="{StaticResource CardBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        CornerRadius="8" Effect="{StaticResource CardShadow}">
+                        CornerRadius="8">
                     <Grid x:Name="CanvasContainer">
                         <Grid.LayoutTransform>
                             <ScaleTransform x:Name="CanvasScale" ScaleX="1" ScaleY="1"/>
@@ -324,11 +324,25 @@
                     </Grid.RowDefinitions>
 
                     <!-- Header -->
-                    <Border Grid.Row="0" Padding="16,12" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-                        <TextBlock Text="히스토리" FontSize="14" FontWeight="SemiBold"
+                    <Border Grid.Row="0" Padding="20,18" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <TextBlock Text="캡처 이력" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}"/>
                     </Border>
 
+                    <StackPanel Grid.Row="1" Margin="22,32" IsHitTestVisible="False">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Items.Count, ElementName=HistoryList}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="아직 캡처 이력이 없어요" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock Text="새로 캡처한 이미지는 여기에 모아둘게요." FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
                     <!-- History List -->
                     <ListBox x:Name="HistoryList" Grid.Row="1"
                              SelectionChanged="HistoryList_SelectionChanged"
@@ -352,7 +366,7 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                  <Border Margin="8,4" Padding="8" CornerRadius="8" Cursor="Hand">
+                                  <Border Margin="12,6" Padding="10" CornerRadius="12" Cursor="Hand">
                                       <Border.ContextMenu>
                                           <ContextMenu>
                                               <MenuItem Header="이 캡처 이력 삭제" Click="DeleteHistoryItem_Click"/>
@@ -382,10 +396,10 @@
                                         </Grid.RowDefinitions>
 
                                         <!-- Number badge -->
-                                        <Border Grid.Row="0" Background="#3182F6" CornerRadius="4"
+                                        <Border Grid.Row="0" Background="#E8F1FF" CornerRadius="6"
                                                 HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,6">
                                             <TextBlock Text="{Binding DisplayNumber}" FontSize="11" FontWeight="SemiBold"
-                                                       Foreground="White"/>
+                                                       Foreground="{StaticResource PrimaryBrush}"/>
                                         </Border>
 
                                         <!-- Thumbnail -->
@@ -415,7 +429,7 @@
 
                     <!-- Footer -->
                     <Border Grid.Row="2" Padding="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
-                        <Button x:Name="BtnClearHistory" Content="히스토리 삭제"
+                        <Button x:Name="BtnClearHistory" Content="전체 이력 삭제" IsEnabled="{Binding HasItems, ElementName=HistoryList}"
                                 Style="{StaticResource SecondaryButtonStyle}"
                                 FontSize="12" Padding="12,6"
                                 Click="BtnClearHistory_Click"/>

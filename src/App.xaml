@@ -14,8 +14,8 @@
             <Color x:Key="CardColor">#FFFFFF</Color>
             <Color x:Key="BorderColor">#E5E8EB</Color>
             <Color x:Key="TextPrimaryColor">#191F28</Color>
-            <Color x:Key="TextSecondaryColor">#8B95A1</Color>
-            <Color x:Key="TextTertiaryColor">#B0B8C1</Color>
+            <Color x:Key="TextSecondaryColor">#586575</Color>
+            <Color x:Key="TextTertiaryColor">#657384</Color>
             <Color x:Key="SuccessColor">#00C471</Color>
             <Color x:Key="ErrorColor">#F04452</Color>
 
@@ -50,10 +50,12 @@
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border" Background="{TemplateBinding Background}"
                                     CornerRadius="12" Padding="{TemplateBinding Padding}"
-                                    Effect="{StaticResource ButtonShadow}">
+                                    BorderBrush="Transparent" BorderThickness="2">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryHoverBrush}"/>
                                 </Trigger>
@@ -79,10 +81,12 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border" Background="{TemplateBinding Background}"
-                                    CornerRadius="12" Padding="{TemplateBinding Padding}">
+                                    CornerRadius="12" Padding="{TemplateBinding Padding}" BorderBrush="Transparent" BorderThickness="2">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="#E8EBED"/>
                                 </Trigger>
@@ -107,6 +111,8 @@
                                 <ContentPresenter/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceBrush}"/>
                                     <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
@@ -132,10 +138,12 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border" Background="{TemplateBinding Background}"
-                                    CornerRadius="10" BorderThickness="0">
+                                    CornerRadius="10" BorderBrush="Transparent" BorderThickness="2">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource SecondaryBrush}"/>
                                 </Trigger>
@@ -159,10 +167,12 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
                             <Border x:Name="border" Background="{TemplateBinding Background}"
-                                    CornerRadius="10" BorderThickness="0">
+                                    CornerRadius="10" BorderBrush="Transparent" BorderThickness="2">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource SecondaryBrush}"/>
                                 </Trigger>
@@ -191,6 +201,8 @@
                                 <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
                                 <Trigger Property="IsFocused" Value="True">
                                     <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
                                     <Setter TargetName="border" Property="Background" Value="White"/>
@@ -211,7 +223,7 @@
                         <ControlTemplate TargetType="CheckBox">
                             <StackPanel Orientation="Horizontal">
                                 <Border x:Name="checkBorder" Width="22" Height="22" CornerRadius="6"
-                                        Background="{StaticResource SecondaryBrush}" BorderThickness="0"
+                                        Background="{StaticResource SecondaryBrush}" BorderBrush="#AEB9C5" BorderThickness="1"
                                         VerticalAlignment="Center">
                                     <TextBlock x:Name="checkMark" Text="✓" FontSize="14" FontWeight="Bold"
                                                Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -220,6 +232,8 @@
                                 <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="checkBorder" Property="Background" Value="{StaticResource PrimaryBrush}"/>
                                     <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
@@ -240,6 +254,13 @@
                 </Setter>
             </Style>
 
+            <!-- Shared typography for content windows. -->
+            <Style TargetType="Window">
+                <Setter Property="FontFamily" Value="Malgun Gothic"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="UseLayoutRounding" Value="True"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            </Style>
             <!-- Global Styles -->
             <Style TargetType="CheckBox" BasedOn="{StaticResource TossCheckBoxStyle}"/>
         </ResourceDictionary>
