@@ -22,6 +22,9 @@ public sealed class CaptureHistoryService : IDisposable
     private readonly string _historyFolder;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private const int MaxHistoryCount = 100;
+    private readonly object _thumbnailLock = new();
+    private readonly LinkedList<CaptureHistoryItem> _thumbnailCache = new();
+    private const int MaxCachedThumbnails = 32;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -126,7 +129,14 @@ public sealed class CaptureHistoryService : IDisposable
         Task.Run(() => LoadImage(item), cancellationToken);
     public BitmapImage? LoadThumbnail(CaptureHistoryItem item)
     {
-        if (item.CachedThumbnail is { } cached) return cached;
+        lock (_thumbnailLock)
+        {
+        if (item.CachedThumbnail is { } cached)
+        {
+            _thumbnailCache.Remove(item);
+            _thumbnailCache.AddFirst(item);
+            return cached;
+        }
         var path = item.ThumbnailPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase) && File.Exists(item.ThumbnailPath) ? item.ThumbnailPath : item.ImagePath;
         if (!File.Exists(path))
             return null;
@@ -136,16 +146,36 @@ public sealed class CaptureHistoryService : IDisposable
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        bitmap.DecodePixelWidth = Math.Min(Math.Max(item.Width, 1), 480);
+        // Constrain both axes; setting only width upscaled narrow portrait thumbnails.
+        if ((long)item.Width * 300 >= (long)item.Height * 480)
+            bitmap.DecodePixelWidth = Math.Min(Math.Max(item.Width, 1), 480);
+        else
+            bitmap.DecodePixelHeight = Math.Min(Math.Max(item.Height, 1), 300);
         bitmap.UriSource = new Uri(path, UriKind.Absolute);
         bitmap.EndInit();
         bitmap.Freeze();
         item.CachedThumbnail = bitmap;
+        _thumbnailCache.AddFirst(item);
+        while (_thumbnailCache.Count > MaxCachedThumbnails)
+        {
+            _thumbnailCache.Last!.Value.CachedThumbnail = null;
+            _thumbnailCache.RemoveLast();
+        }
         return bitmap;
         }
         catch (Exception ex) when (ex is IOException or NotSupportedException or FileFormatException)
         {
             return null;
+        }
+        }
+    }
+
+    internal void ClearThumbnailCache()
+    {
+        lock (_thumbnailLock)
+        {
+            foreach (var item in _thumbnailCache) item.CachedThumbnail = null;
+            _thumbnailCache.Clear();
         }
     }
 
@@ -246,6 +276,7 @@ public sealed class CaptureHistoryService : IDisposable
 
     public void Dispose()
     {
+        ClearThumbnailCache();
         _lock.Dispose();
     }
 }

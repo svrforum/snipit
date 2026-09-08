@@ -194,13 +194,19 @@ public sealed class GifRecorderService : IDisposable
                 }
             }
 
-            long frameBytes = ((long)frame.Width * 3 + 3) / 4 * 4 * frame.Height;
+            long frameBytes = ((long)frame.Width * Image.GetPixelFormatSize(frame.PixelFormat) + 31) / 32 * 4 * frame.Height;
             if (_frames.Count > 0 && _frameBytes + frameBytes > MaxFrameBytes)
             {
                 frame.Dispose();
                 _memoryLimitReached = true;
                 return;
             }
+            // Drawing on a Bitmap retains a native GDI backing surface. Store a
+            // pixel-only bitmap, but only after duplicate/limit checks avoid this copy.
+            Bitmap storedFrame;
+            try { storedFrame = DetachPixels(frame); }
+            finally { frame.Dispose(); }
+            frame = storedFrame;
             _frameBytes += frameBytes;
             // Store frame with duration
             _frames.Add((frame, _frameDelayMs));
@@ -231,10 +237,11 @@ public sealed class GifRecorderService : IDisposable
 
         try
         {
-            data1 = frame1.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
-            data2 = frame2.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+            var format = frame1.PixelFormat == frame2.PixelFormat && Image.GetPixelFormatSize(frame1.PixelFormat) == 32 ? frame1.PixelFormat : PixelFormat.Format24bppRgb;
+            data1 = frame1.LockBits(rect, ImageLockMode.ReadOnly, format);
+            data2 = frame2.LockBits(rect, ImageLockMode.ReadOnly, format);
 
-            int bytesPerPixel = 3;
+            int bytesPerPixel = Image.GetPixelFormatSize(format) / 8;
             int stride = data1.Stride;
 
             unsafe
@@ -247,10 +254,11 @@ public sealed class GifRecorderService : IDisposable
                     for (int x = 0; x < frame1.Width; x += sampleStep)
                     {
                         int offset = y * stride + x * bytesPerPixel;
+                        int offset2 = y * data2.Stride + x * bytesPerPixel;
 
-                        int diff = Math.Abs(ptr1[offset] - ptr2[offset]) +
-                                   Math.Abs(ptr1[offset + 1] - ptr2[offset + 1]) +
-                                   Math.Abs(ptr1[offset + 2] - ptr2[offset + 2]);
+                        int diff = Math.Abs(ptr1[offset] - ptr2[offset2]) +
+                                   Math.Abs(ptr1[offset + 1] - ptr2[offset2 + 1]) +
+                                   Math.Abs(ptr1[offset + 2] - ptr2[offset2 + 2]);
 
                         totalDifference += diff;
                         totalSamples++;
@@ -288,7 +296,7 @@ public sealed class GifRecorderService : IDisposable
                     CopyPixelOperation.SourceCopy);
             }
 
-            // Transfer ownership directly when no resize is needed.
+            // Transfer ownership; accepted frames detach pixels in ProcessFrame.
             if (_resolutionScale >= 1.0)
             {
                 var result = originalBitmap;
@@ -322,6 +330,32 @@ public sealed class GifRecorderService : IDisposable
             originalBitmap?.Dispose();
             scaledBitmap?.Dispose();
         }
+    }
+
+    // Copy pixels without carrying GDI's drawing-surface backing buffers into stored frames.
+    private static unsafe Bitmap DetachPixels(Bitmap source)
+    {
+        var result = new Bitmap(source.Width, source.Height, source.PixelFormat);
+        var rect = new Rectangle(0, 0, source.Width, source.Height);
+        try
+        {
+            var input = source.LockBits(rect, ImageLockMode.ReadOnly, source.PixelFormat);
+            try
+            {
+                var output = result.LockBits(rect, ImageLockMode.WriteOnly, result.PixelFormat);
+                try
+                {
+                    var bytes = source.Width * Image.GetPixelFormatSize(source.PixelFormat) / 8;
+                    for (int y = 0; y < source.Height; y++)
+                        Buffer.MemoryCopy((byte*)input.Scan0 + y * input.Stride,
+                            (byte*)output.Scan0 + y * output.Stride, Math.Abs(output.Stride), bytes);
+                }
+                finally { result.UnlockBits(output); }
+            }
+            finally { source.UnlockBits(input); }
+            return result;
+        }
+        catch { result.Dispose(); throw; }
     }
 
     private string? SaveGif()

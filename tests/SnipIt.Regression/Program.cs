@@ -24,6 +24,9 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--capture-memory") { PerformanceBenchmarks.CaptureMemory(args[1]); return; }
+        if (args.Length == 2 && args[0] == "--live-gif") { PerformanceBenchmarks.LiveGif(args[1]); return; }
+        if (args.Length == 2 && args[0] == "--benchmark") { PerformanceBenchmarks.Run(args[1]); return; }
         // Isolated files only; never touch the user's capture history.
         var directory = Path.Combine(Path.GetTempPath(), "SnipIt-regression-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -64,6 +67,40 @@ internal static class Program
                         exact = restored.GetPixel(x, y).ToArgb() == pattern.GetPixel(x, y).ToArgb();
                 Check(exact, "History PNG roundtrip preserves every source pixel");
                 history.DeleteHistoryItem(item);
+            }
+            using (var portrait = new Bitmap(200, 4000))
+            {
+                var item = history.AddCapture(portrait);
+                var thumb = history.LoadThumbnail(item)!;
+                Check(thumb.PixelWidth <= 480 && thumb.PixelHeight <= 300,
+                    "Tall thumbnails never upscale beyond the two-axis bound");
+                var entries = Enumerable.Range(0, 40).Select(i => new CaptureHistoryItem
+                {
+                    Id = "cache-" + i, ImagePath = item.ImagePath, ThumbnailPath = item.ThumbnailPath,
+                    Width = item.Width, Height = item.Height
+                }).ToArray();
+                foreach (var entry in entries) history.LoadThumbnail(entry);
+                Check(entries.Count(entry => entry.CachedThumbnail != null) == 32 && entries[0].CachedThumbnail == null,
+                    "Thumbnail cache evicts oldest items after 32 entries");
+                history.ClearThumbnailCache();
+                Check(entries.All(entry => entry.CachedThumbnail == null), "Thumbnail cache releases all retained sources");
+                history.DeleteHistoryItem(item);
+            }
+            using (var recorder = new GifRecorderService(quality: GifQualityPreset.Original))
+            {
+                var frame = new Bitmap(17, 13, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                using (var graphics = Graphics.FromImage(frame)) graphics.Clear(System.Drawing.Color.Red);
+                frame.SetPixel(16, 12, System.Drawing.Color.Blue);
+                Call(recorder, "ProcessFrame", frame);
+                var frames = (List<(Bitmap frame, int duration)>)typeof(GifRecorderService).GetField("_frames", Private)!.GetValue(recorder)!;
+                Check(frames[0].frame.GetPixel(16, 12).ToArgb() == System.Drawing.Color.Blue.ToArgb()
+                    && frames[0].frame.GetPixel(0, 0).ToArgb() == System.Drawing.Color.Red.ToArgb(),
+                    "Detached GIF pixels preserve padded rows and colors");
+                var path = Path.Combine(directory, "detached.gif");
+                using (var encoder = AnimatedGif.AnimatedGif.Create(path, 33))
+                    encoder.AddFrame(frames[0].frame, delay: 33, quality: AnimatedGif.GifQuality.Bit8);
+                using var reopened = System.Drawing.Image.FromFile(path);
+                Check(reopened.Width == 17 && reopened.Height == 13, "Detached frame encodes into a readable GIF");
             }
             using (var recorder = new GifRecorderService())
             {

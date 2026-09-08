@@ -47,3 +47,11 @@ replacement and restart using paths with spaces and Korean characters. It does
 not replace an installed SnipIt, register hotkeys or open the real app's UI.
 The automatic rollback covers replacement/initial process-launch failure; it is
 not a guarantee against crashes later in a new version's session.
+
+### 성능 측정
+
+회귀 실행기에 `--benchmark <결과.json>`을 전달하면 격리된 임시 이력으로 4K PNG 저장/재열기, 편집기 undo 스트레스, 실제 화면 캡처, 세로 이력 100장, 정적 GIF 1800프레임을 측정합니다.
+`--capture-memory <결과.json>`은 720p 실제 캡처 90프레임의 저장/해제 메모리를 비교합니다.
+`--live-gif <결과.json>`은 실제 화면 일부를 60초 녹화하며 10초마다 메모리/CPU를 기록한 뒤 저장 없이 폐기합니다.
+실제 화면을 읽는 측정은 사용자 동의가 있는 로컬 환경에서만 실행하세요. 캡처 픽셀은 결과 파일에 포함하지 않습니다.
+CPU 시간은 프로세스 누적 CPU 시간이며 전체 시스템 CPU 백분율이 아닙니다. 진단용 GC는 벤치마크에만 있습니다.

@@ -380,7 +380,7 @@ public partial class EditorWindow : Window
         var items = await Task.Run(() => history.Select((item, i) => new HistoryItemViewModel
         {
             Item = item,
-            Thumbnail = CaptureHistoryService.Instance.LoadThumbnail(item),
+
             Index = history.Count - i,
         }).ToList());
         if (version != _historyRefreshVersion) return;
@@ -1666,6 +1666,9 @@ public partial class EditorWindow : Window
     {
         CaptureHistoryService.Instance.HistoryChanged -= OnHistoryChanged;
         ++_historyRefreshVersion;
+        _historyItems.Clear();
+        BaseImage.Source = null;
+        DrawingCanvas.Children.Clear();
         ++_historyLoadVersion;
         _originalBitmap?.Dispose();
         foreach (var bitmap in _undoStack) bitmap.Dispose();
