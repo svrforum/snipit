@@ -96,20 +96,24 @@ public partial class App : System.Windows.Application
         }
     }
 
-    public static void CaptureFullScreen()
+    public static async void CaptureFullScreen()
     {
         if (_isCapturing) return;
         _isCapturing = true;
 
         try
         {
-            HideEditorAndWait();
+            await HideEditorAndWaitAsync();
 
             var bitmap = ScreenCaptureService.CaptureFullScreen();
             if (bitmap != null)
             {
-                OpenEditor(bitmap);
+                await OpenEditorAsync(bitmap);
             }
+        }
+        catch (Exception ex)
+        {
+            TrayIconService.Instance.ShowNotification("캡처 실패", ex.Message, 3000);
         }
         finally
         {
@@ -117,20 +121,24 @@ public partial class App : System.Windows.Application
         }
     }
 
-    public static void CaptureActiveWindow()
+    public static async void CaptureActiveWindow()
     {
         if (_isCapturing) return;
         _isCapturing = true;
 
         try
         {
-            HideEditorAndWait();
+            await HideEditorAndWaitAsync();
 
             var bitmap = ScreenCaptureService.CaptureActiveWindow();
             if (bitmap != null)
             {
-                OpenEditor(bitmap);
+                await OpenEditorAsync(bitmap);
             }
+        }
+        catch (Exception ex)
+        {
+            TrayIconService.Instance.ShowNotification("캡처 실패", ex.Message, 3000);
         }
         finally
         {
@@ -138,22 +146,26 @@ public partial class App : System.Windows.Application
         }
     }
 
-    public static void CaptureRegion()
+    public static async void CaptureRegion()
     {
         if (_isCapturing) return;
         _isCapturing = true;
 
         try
         {
-            HideEditorAndWait();
+            await HideEditorAndWaitAsync();
 
             var overlay = new Views.CaptureOverlay();
             overlay.ShowDialog();
 
             if (overlay.CapturedImage != null)
             {
-                OpenEditor(overlay.CapturedImage);
+                await OpenEditorAsync(overlay.CapturedImage);
             }
+        }
+        catch (Exception ex)
+        {
+            TrayIconService.Instance.ShowNotification("캡처 실패", ex.Message, 3000);
         }
         finally
         {
@@ -161,17 +173,21 @@ public partial class App : System.Windows.Application
         }
     }
 
-    public static void CaptureGif()
+    public static async void CaptureGif()
     {
         if (_isCapturing) return;
         _isCapturing = true;
 
         try
         {
-            HideEditorAndWait();
+            await HideEditorAndWaitAsync();
 
             var overlay = new Views.GifRecordingOverlay();
             overlay.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            TrayIconService.Instance.ShowNotification("캡처 실패", ex.Message, 3000);
         }
         finally
         {
@@ -181,34 +197,37 @@ public partial class App : System.Windows.Application
 
     private static double _savedLeft, _savedTop;
 
-    private static void HideEditorAndWait()
+    private static async Task HideEditorAndWaitAsync()
     {
-        if (_currentEditor != null && _currentEditor.IsVisible)
+        var editor = _currentEditor;
+        if (editor != null && editor.IsVisible)
         {
             // Save position
-            _savedLeft = _currentEditor.Left;
-            _savedTop = _currentEditor.Top;
+            _savedLeft = editor.Left;
+            _savedTop = editor.Top;
 
             // Hide the window
-            _currentEditor.Hide();
+            editor.Hide();
 
             // Force UI update and wait for window to be fully hidden
-            _currentEditor.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+            editor.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
 
             // Wait for the window to be completely hidden from screen
-            System.Threading.Thread.Sleep(150);
+            await Task.Delay(150);
 
             // Restore position for next show
-            _currentEditor.Left = _savedLeft;
-            _currentEditor.Top = _savedTop;
+            editor.Left = _savedLeft;
+            editor.Top = _savedTop;
         }
     }
 
-    private static void OpenEditor(System.Drawing.Bitmap bitmap)
+    private static async Task OpenEditorAsync(System.Drawing.Bitmap bitmap)
     {
-        // Save to history
-        CaptureHistoryService.Instance.AddCapture(bitmap);
-
+        // Keep a separate image alive while the editor is free to replace or close its image.
+        using var historyBitmap = (System.Drawing.Bitmap)bitmap.Clone();
+        var historySave = SaveCaptureHistoryAsync(historyBitmap);
+        try
+        {
         // Check if silent mode is enabled
         var config = AppSettingsConfig.Instance;
         if (config.SilentMode)
@@ -225,6 +244,7 @@ public partial class App : System.Windows.Application
                 3000,
                 OpenLastSilentCapture,
                 SaveLastSilentCapture);
+            bitmap.Dispose();
             return;
         }
 
@@ -239,6 +259,24 @@ public partial class App : System.Windows.Application
         _currentEditor = new Views.EditorWindow(bitmap);
         _currentEditor.Closed += (s, e) => _currentEditor = null;
         _currentEditor.Show();
+        }
+        finally
+        {
+            // Do not release the background save's bitmap if showing the editor fails.
+            await historySave;
+        }
+    }
+
+    private static async Task SaveCaptureHistoryAsync(System.Drawing.Bitmap bitmap)
+    {
+        try
+        {
+            await CaptureHistoryService.Instance.AddCaptureAsync(bitmap);
+        }
+        catch (Exception ex)
+        {
+            TrayIconService.Instance.ShowNotification("캡처 이력 저장 실패", ex.Message, 3000);
+        }
     }
 
     private static void CopyBitmapToClipboard(System.Drawing.Bitmap bitmap)

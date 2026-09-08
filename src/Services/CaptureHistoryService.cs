@@ -31,14 +31,24 @@ public sealed class CaptureHistoryService : IDisposable
 
     public event Action? HistoryChanged;
 
-    public IReadOnlyList<CaptureHistoryItem> History => _history.AsReadOnly();
-
-    private CaptureHistoryService()
+    public IReadOnlyList<CaptureHistoryItem> History
     {
-        _historyFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SnipIt",
-            "History");
+        get
+        {
+            _lock.Wait();
+            try { return _history.ToArray(); }
+            finally { _lock.Release(); }
+        }
+    }
+
+    private CaptureHistoryService() : this(Path.Combine(
+        AppDataPaths.GetFolder(Environment.SpecialFolder.LocalApplicationData), "History"))
+    {
+    }
+
+    internal CaptureHistoryService(string historyFolder)
+    {
+        _historyFolder = historyFolder;
 
         Directory.CreateDirectory(_historyFolder);
         LoadHistory();
@@ -92,54 +102,12 @@ public sealed class CaptureHistoryService : IDisposable
         return item;
     }
 
-    public async Task<CaptureHistoryItem> AddCaptureAsync(Bitmap bitmap, CancellationToken cancellationToken = default)
+    public Task<CaptureHistoryItem> AddCaptureAsync(Bitmap bitmap, CancellationToken cancellationToken = default)
     {
-        var item = new CaptureHistoryItem
-        {
-            Id = Guid.NewGuid().ToString("N"),
-            CapturedAt = DateTime.Now,
-            Width = bitmap.Width,
-            Height = bitmap.Height
-        };
-
-        var imagePath = Path.Combine(_historyFolder, $"{item.Id}.png");
-        var thumbnailPath = Path.Combine(_historyFolder, $"{item.Id}_thumb.jpg");
-
-        // Save on background thread
-        await Task.Run(() =>
-        {
-            // Save as PNG for lossless quality
-            bitmap.Save(imagePath, ImageFormat.Png);
-            using var thumbnail = ImageProcessingHelper.CreateThumbnail(bitmap, 160, 100);
-            SaveJpeg(thumbnail, thumbnailPath, 85);
-        }, cancellationToken);
-
-        item.ImagePath = imagePath;
-        item.ThumbnailPath = thumbnailPath;
-
-        await _lock.WaitAsync(cancellationToken);
-        try
-        {
-            _history.Insert(0, item);
-
-            while (_history.Count > MaxHistoryCount)
-            {
-                var oldItem = _history[^1];
-                DeleteHistoryItemFiles(oldItem);
-                _history.RemoveAt(_history.Count - 1);
-            }
-
-            await SaveHistoryIndexAsync(cancellationToken);
-        }
-        finally
-        {
-            _lock.Release();
-        }
-
-        HistoryChanged?.Invoke();
-        return item;
+        // Once saving starts, commit the image and index together. The caller owns the
+        // bitmap and must keep it alive until this task completes.
+        return Task.Run(() => AddCapture(bitmap), cancellationToken);
     }
-
     public Bitmap? LoadImage(CaptureHistoryItem item)
     {
         if (!File.Exists(item.ImagePath))
@@ -182,16 +150,25 @@ public sealed class CaptureHistoryService : IDisposable
 
     public BitmapImage? LoadThumbnail(CaptureHistoryItem item)
     {
+        if (item.CachedThumbnail is { } cached) return cached;
         if (!File.Exists(item.ThumbnailPath))
             return null;
 
+        try
+        {
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
         bitmap.UriSource = new Uri(item.ThumbnailPath, UriKind.Absolute);
         bitmap.EndInit();
         bitmap.Freeze();
+        item.CachedThumbnail = bitmap;
         return bitmap;
+        }
+        catch (Exception ex) when (ex is IOException or NotSupportedException or FileFormatException)
+        {
+            return null;
+        }
     }
 
     public void DeleteHistoryItem(CaptureHistoryItem item, bool removeFromList = true)
@@ -299,21 +276,9 @@ public sealed class CaptureHistoryService : IDisposable
         try
         {
             var json = JsonSerializer.Serialize(_history, JsonOptions);
-            File.WriteAllText(indexPath, json);
-        }
-        catch
-        {
-            // Ignore save errors
-        }
-    }
-
-    private async Task SaveHistoryIndexAsync(CancellationToken cancellationToken = default)
-    {
-        var indexPath = Path.Combine(_historyFolder, "index.json");
-        try
-        {
-            var json = JsonSerializer.Serialize(_history, JsonOptions);
-            await File.WriteAllTextAsync(indexPath, json, cancellationToken);
+            var temporaryPath = indexPath + ".tmp";
+            File.WriteAllText(temporaryPath, json);
+            File.Move(temporaryPath, indexPath, overwrite: true);
         }
         catch
         {
@@ -332,6 +297,8 @@ public sealed class CaptureHistoryService : IDisposable
 /// </summary>
 public sealed class CaptureHistoryItem
 {
+    // Frozen thumbnails can be reused across editor windows without retaining file handles.
+    internal BitmapImage? CachedThumbnail { get; set; }
     public required string Id { get; init; }
     public DateTime CapturedAt { get; init; }
     public string ImagePath { get; set; } = "";

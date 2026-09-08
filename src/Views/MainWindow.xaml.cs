@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using SnipIt.Services;
 using SnipIt.Utils;
+using SnipIt.Models;
 
 namespace SnipIt.Views;
 
@@ -22,8 +23,16 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        // Initialize hotkey service with this window
-        HotkeyService.Instance.Initialize(this);
+        RefreshShortcutLabels();
+    }
+
+    private void RefreshShortcutLabels()
+    {
+        var config = AppSettingsConfig.Instance;
+        RegionShortcutText.Text = config.RegionHotkey.ToString();
+        FullScreenShortcutText.Text = config.FullScreenHotkey.ToString();
+        ActiveWindowShortcutText.Text = config.ActiveWindowHotkey.ToString();
+        GifShortcutText.Text = config.GifHotkey.ToString();
     }
 
     private async void BtnFullScreen_Click(object sender, RoutedEventArgs e)
@@ -58,6 +67,7 @@ public partial class MainWindow : Window
         var settingsWindow = new SettingsWindow();
         settingsWindow.Owner = this;
         settingsWindow.ShowDialog();
+        RefreshShortcutLabels();
     }
 
     private void BtnHelp_Click(object sender, RoutedEventArgs e)

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
@@ -17,10 +18,11 @@ public static class ImageProcessingHelper
     public static void ApplyMosaic(Bitmap bitmap, Rectangle region, int blockSize = 16)
     {
         // Validate and clamp region to bitmap bounds
-        int x = Math.Max(0, region.X);
-        int y = Math.Max(0, region.Y);
-        int width = Math.Min(region.Width, bitmap.Width - x);
-        int height = Math.Min(region.Height, bitmap.Height - y);
+        var clipped = Rectangle.Intersect(region, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+        int x = clipped.X;
+        int y = clipped.Y;
+        int width = clipped.Width;
+        int height = clipped.Height;
 
         if (width <= 0 || height <= 0 || blockSize <= 0)
             return;
@@ -102,10 +104,11 @@ public static class ImageProcessingHelper
     /// </summary>
     public static void ApplyBlur(Bitmap bitmap, Rectangle region, int iterations = 2)
     {
-        int x = Math.Max(0, region.X);
-        int y = Math.Max(0, region.Y);
-        int width = Math.Min(region.Width, bitmap.Width - x);
-        int height = Math.Min(region.Height, bitmap.Height - y);
+        var clipped = Rectangle.Intersect(region, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+        int x = clipped.X;
+        int y = clipped.Y;
+        int width = clipped.Width;
+        int height = clipped.Height;
 
         if (width <= 0 || height <= 0)
             return;
@@ -124,15 +127,19 @@ public static class ImageProcessingHelper
         for (int iter = 0; iter < iterations; iter++)
         {
             BitmapData? bitmapData = null;
+            byte[]? buffer = null;
+            byte[]? temp = null;
             try
             {
                 bitmapData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, pixelFormat);
-                int stride = bitmapData.Stride;
-                int bufferSize = Math.Abs(stride) * height;
-
-                byte[] buffer = new byte[bufferSize];
-                Marshal.Copy(bitmapData.Scan0, buffer, 0, bufferSize);
-                byte[] temp = new byte[bufferSize];
+                // LockBits can retain the full image stride for a subregion. Copy only
+                // valid pixels row by row, including images with a negative stride.
+                int stride = checked(width * bytesPerPixel);
+                int bufferSize = checked(stride * height);
+                buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+                temp = ArrayPool<byte>.Shared.Rent(bufferSize);
+                for (int row = 0; row < height; row++)
+                    Marshal.Copy(IntPtr.Add(bitmapData.Scan0, row * bitmapData.Stride), buffer, row * stride, stride);
 
                 unsafe
                 {
@@ -201,12 +208,15 @@ public static class ImageProcessingHelper
                     }
                 }
 
-                Marshal.Copy(buffer, 0, bitmapData.Scan0, bufferSize);
+                for (int row = 0; row < height; row++)
+                    Marshal.Copy(buffer, row * stride, IntPtr.Add(bitmapData.Scan0, row * bitmapData.Stride), stride);
             }
             finally
             {
                 if (bitmapData != null)
                     bitmap.UnlockBits(bitmapData);
+                if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
+                if (temp != null) ArrayPool<byte>.Shared.Return(temp);
             }
         }
     }

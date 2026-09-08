@@ -79,15 +79,6 @@ public static class ScreenCaptureService
 
         foreach (var screen in allScreens)
         {
-            // Get the DPI scale for this monitor
-            var dpiScale = GetDpiScaleForPoint(screen.Bounds.Left + 10, screen.Bounds.Top + 10);
-
-            // Calculate physical pixel bounds
-            int physLeft = (int)(screen.Bounds.Left * dpiScale);
-            int physTop = (int)(screen.Bounds.Top * dpiScale);
-            int physRight = (int)((screen.Bounds.Left + screen.Bounds.Width) * dpiScale);
-            int physBottom = (int)((screen.Bounds.Top + screen.Bounds.Height) * dpiScale);
-
             minX = Math.Min(minX, screen.Bounds.Left);
             minY = Math.Min(minY, screen.Bounds.Top);
             maxX = Math.Max(maxX, screen.Bounds.Right);
@@ -154,6 +145,8 @@ public static class ScreenCaptureService
         // Use 32-bit ARGB for best quality (no color loss)
         var bitmap = new Bitmap(region.Width, region.Height, PixelFormat.Format32bppArgb);
 
+        try
+        {
         using (var graphics = Graphics.FromImage(bitmap))
         {
             // Set high quality rendering
@@ -172,6 +165,12 @@ public static class ScreenCaptureService
         }
 
         return bitmap;
+        }
+        catch
+        {
+            bitmap.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

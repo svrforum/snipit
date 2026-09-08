@@ -28,6 +28,7 @@ public partial class EditorWindow : Window
     private readonly LinkedList<Bitmap> _undoStack = new();
     private readonly LinkedList<Bitmap> _redoStack = new();
     private const int MaxUndoStackSize = 10;
+    private const long MaxUndoBytes = 128L * 1024 * 1024;
 
     private string _currentTool = "Select";
     private Color _currentColor = Colors.Red;
@@ -49,6 +50,7 @@ public partial class EditorWindow : Window
 
     private readonly ObservableCollection<HistoryItemViewModel> _historyItems = new();
     private static string? _lastUsedTool;
+    private int _historyLoadVersion;
 
     // Zoom
     private double _zoomLevel = 1.0;
@@ -134,8 +136,8 @@ public partial class EditorWindow : Window
             {
                 try
                 {
-                    CopyToClipboard();
-                    StatusText.Text = "클립보드에 복사됨";
+                    CopyToClipboard(automatic: true);
+                    if (!AppSettingsConfig.Instance.CopyToClipboard) StatusText.Text = "캡처를 편집할 준비가 되었습니다.";
                 }
                 catch { }
             }), System.Windows.Threading.DispatcherPriority.Background);
@@ -324,13 +326,12 @@ public partial class EditorWindow : Window
     {
         if (_undoStack.Count > 0)
         {
-            _redoStack.AddFirst((Bitmap)_originalBitmap.Clone());
-            _originalBitmap.Dispose();
+            _redoStack.AddFirst(_originalBitmap);
             _originalBitmap = _undoStack.First!.Value;
             _undoStack.RemoveFirst();
             DrawingCanvas.Children.Clear();
             LoadImage(_originalBitmap);
-            CopyToClipboard();
+            CopyToClipboard(automatic: true);
             StatusText.Text = "실행 취소됨";
         }
     }
@@ -339,36 +340,37 @@ public partial class EditorWindow : Window
     {
         if (_redoStack.Count > 0)
         {
-            _undoStack.AddFirst((Bitmap)_originalBitmap.Clone());
-            _originalBitmap.Dispose();
+            _undoStack.AddFirst(_originalBitmap);
             _originalBitmap = _redoStack.First!.Value;
             _redoStack.RemoveFirst();
             DrawingCanvas.Children.Clear();
             LoadImage(_originalBitmap);
-            CopyToClipboard();
+            CopyToClipboard(automatic: true);
             StatusText.Text = "다시 실행됨";
         }
     }
 
-    private void CopyToClipboard()
+    private void CopyToClipboard(bool automatic = false)
     {
+        if (automatic && !AppSettingsConfig.Instance.CopyToClipboard) return;
         try
         {
-            var finalBitmap = RenderFinalImage();
-            var bitmapSource = BitmapToImageSource(finalBitmap);
-            if (bitmapSource != null)
+            BitmapSource bitmapSource;
+            if (DrawingCanvas.Children.Count == 0 && BaseImage.Source is BitmapSource source)
+                bitmapSource = source;
+            else
             {
-                System.Windows.Clipboard.SetImage(bitmapSource);
-                StatusText.Text = "클립보드에 복사됨";
+                using var finalBitmap = RenderFinalImage();
+                bitmapSource = BitmapToImageSource(finalBitmap);
             }
-            finalBitmap.Dispose();
+            System.Windows.Clipboard.SetImage(bitmapSource);
+            StatusText.Text = "클립보드에 복사됨";
         }
         catch
         {
             StatusText.Text = "클립보드 복사 실패";
         }
     }
-
     private void LoadHistory()
     {
         _historyItems.Clear();
@@ -401,11 +403,28 @@ public partial class EditorWindow : Window
         }
     }
 
-    private void HistoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void HistoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        int version = ++_historyLoadVersion;
         if (HistoryList.SelectedItem is HistoryItemViewModel viewModel)
         {
-            var bitmap = CaptureHistoryService.Instance.LoadImage(viewModel.Item);
+            Bitmap? bitmap;
+            try
+            {
+                StatusText.Text = "캡처 불러오는 중…";
+                bitmap = await CaptureHistoryService.Instance.LoadImageAsync(viewModel.Item);
+            }
+            catch (Exception ex)
+            {
+                if (version == _historyLoadVersion) StatusText.Text = $"캡처 불러오기 실패: {ex.Message}";
+                return;
+            }
+            if (version != _historyLoadVersion)
+            {
+                bitmap?.Dispose();
+                return;
+            }
+            if (bitmap == null) StatusText.Text = "캡처 파일을 찾을 수 없습니다.";
             if (bitmap != null)
             {
                 // Clear previous selection
@@ -417,6 +436,14 @@ public partial class EditorWindow : Window
                 // Set current selection
                 viewModel.IsSelected = true;
 
+                if (_isOcrMode) ExitOcrMode();
+                _currentTextBox = null;
+                _currentShape = null;
+                _isDrawing = false;
+                foreach (var state in _undoStack) state.Dispose();
+                foreach (var state in _redoStack) state.Dispose();
+                _undoStack.Clear();
+                _redoStack.Clear();
                 _originalBitmap?.Dispose();
                 _originalBitmap = bitmap;
                 DrawingCanvas.Children.Clear();
@@ -430,15 +457,24 @@ public partial class EditorWindow : Window
     private void BtnClearHistory_Click(object sender, RoutedEventArgs e)
     {
         var result = System.Windows.MessageBox.Show(
-            "Are you sure you want to clear all capture history?",
-            "Clear History",
+            "저장된 캡처 이력을 모두 삭제하시겠습니까?",
+            "캡처 이력 삭제",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
         if (result == MessageBoxResult.Yes)
         {
             CaptureHistoryService.Instance.ClearHistory();
-            StatusText.Text = "History cleared";
+            StatusText.Text = "캡처 이력을 삭제했습니다.";
+        }
+    }
+
+    private void DeleteHistoryItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: HistoryItemViewModel item })
+        {
+            CaptureHistoryService.Instance.DeleteHistoryItem(item.Item);
+            StatusText.Text = "캡처 이력을 삭제했습니다. 현재 편집 중인 이미지는 유지됩니다.";
         }
     }
 
@@ -494,8 +530,10 @@ public partial class EditorWindow : Window
         _undoStack.AddFirst((Bitmap)_originalBitmap.Clone());
 
         // Limit undo stack size to prevent excessive memory usage
-        while (_undoStack.Count > MaxUndoStackSize)
+        long retainedBytes = _undoStack.Sum(image => (long)image.Width * image.Height * 4);
+        while (_undoStack.Count > 1 && (_undoStack.Count > MaxUndoStackSize || retainedBytes > MaxUndoBytes))
         {
+            retainedBytes -= (long)_undoStack.Last!.Value.Width * _undoStack.Last.Value.Height * 4;
             _undoStack.Last!.Value.Dispose();
             _undoStack.RemoveLast();
         }
@@ -621,7 +659,7 @@ public partial class EditorWindow : Window
             // Auto-copy to clipboard after any edit
             if (_currentTool != "Select")
             {
-                CopyToClipboard();
+                CopyToClipboard(automatic: true);
             }
         }
     }
@@ -848,7 +886,7 @@ public partial class EditorWindow : Window
                 SaveAndMergeDrawing();
 
                 // Auto-copy to clipboard
-                CopyToClipboard();
+                CopyToClipboard(automatic: true);
             }
 
             _currentTextBox = null;
@@ -981,20 +1019,24 @@ public partial class EditorWindow : Window
             renderBitmap.Render(DrawingCanvas);
 
             // Convert to System.Drawing.Bitmap
-            var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            var bitmapData = bitmap.LockBits(
-                new System.Drawing.Rectangle(0, 0, width, height),
-                System.Drawing.Imaging.ImageLockMode.WriteOnly,
-                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-            // Copy pixels
-            int stride = width * 4;
-            byte[] pixels = new byte[height * stride];
-            renderBitmap.CopyPixels(pixels, stride, 0);
-
-            System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmapData.Scan0, pixels.Length);
-            bitmap.UnlockBits(bitmapData);
-
+            var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            try
+            {
+                var bitmapData = bitmap.LockBits(
+                    new System.Drawing.Rectangle(0, 0, width, height),
+                    ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                try
+                {
+                    renderBitmap.CopyPixels(Int32Rect.Empty, bitmapData.Scan0,
+                        checked(bitmapData.Stride * height), bitmapData.Stride);
+                }
+                finally { bitmap.UnlockBits(bitmapData); }
+            }
+            catch
+            {
+                bitmap.Dispose();
+                throw;
+            }
             return bitmap;
         }
         catch
@@ -1051,7 +1093,7 @@ public partial class EditorWindow : Window
             DrawingCanvas.Children.Clear();
             LoadImage(_originalBitmap);
             UpdateImageSizeText();
-            CopyToClipboard();
+            CopyToClipboard(automatic: true);
 
             StatusText.Text = "이미지가 잘렸습니다";
         }
@@ -1091,7 +1133,13 @@ public partial class EditorWindow : Window
             BtnOcr.IsEnabled = false;
             StatusText.Text = "텍스트 인식 중...";
 
-            _ocrResult = await OcrService.ExtractTextWithRegionsAsync(_originalBitmap);
+            // History navigation or closing the window may dispose the current image.
+            var source = _originalBitmap;
+            int version = _historyLoadVersion;
+            using var snapshot = (Bitmap)source.Clone();
+            var result = await OcrService.ExtractTextWithRegionsAsync(snapshot);
+            if (version != _historyLoadVersion || !ReferenceEquals(source, _originalBitmap)) return;
+            _ocrResult = result;
 
             if (_ocrResult.Lines.Count == 0)
             {
@@ -1611,6 +1659,7 @@ public partial class EditorWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         CaptureHistoryService.Instance.HistoryChanged -= OnHistoryChanged;
+        ++_historyLoadVersion;
         _originalBitmap?.Dispose();
         foreach (var bitmap in _undoStack) bitmap.Dispose();
         foreach (var bitmap in _redoStack) bitmap.Dispose();

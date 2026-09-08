@@ -352,7 +352,12 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="8,4" Padding="8" CornerRadius="8" Cursor="Hand">
+                                  <Border Margin="8,4" Padding="8" CornerRadius="8" Cursor="Hand">
+                                      <Border.ContextMenu>
+                                          <ContextMenu>
+                                              <MenuItem Header="이 캡처 이력 삭제" Click="DeleteHistoryItem_Click"/>
+                                          </ContextMenu>
+                                      </Border.ContextMenu>
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Background" Value="{StaticResource CardBrush}"/>

@@ -239,8 +239,7 @@ public sealed class AppSettingsConfig
 
     // Static configuration path
     private static readonly string ConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SnipIt",
+        SnipIt.Utils.AppDataPaths.GetFolder(Environment.SpecialFolder.ApplicationData),
         "settings.json");
 
     // Thread-safe lazy singleton

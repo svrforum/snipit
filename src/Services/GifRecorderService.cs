@@ -20,6 +20,10 @@ public sealed class GifRecorderService : IDisposable
     private DateTime _recordingStartTime;
     private Bitmap? _previousFrame;
     private int _duplicateFrameCount;
+    private const long MaxFrameBytes = 256L * 1024 * 1024;
+    private long _frameBytes;
+    private bool _limitReached;
+    private bool _memoryLimitReached;
 
     // Configurable settings
     private readonly int _targetFps;
@@ -80,10 +84,10 @@ public sealed class GifRecorderService : IDisposable
         if (_isRecording) return;
 
         _captureRegion = region;
-        _frames.Clear();
-        _previousFrame?.Dispose();
-        _previousFrame = null;
+        ClearFrames();
         _duplicateFrameCount = 0;
+        _limitReached = false;
+        _memoryLimitReached = false;
         _isRecording = true;
         _recordingStartTime = DateTime.Now;
         _captureTimer.Start();
@@ -94,10 +98,12 @@ public sealed class GifRecorderService : IDisposable
     /// </summary>
     public async Task<string?> StopRecordingAsync()
     {
-        if (!_isRecording) return null;
-
-        _isRecording = false;
-        _captureTimer.Stop();
+        lock (_frames)
+        {
+            if (!_isRecording) return null;
+            _isRecording = false;
+            _captureTimer.Stop();
+        }
 
         if (_frames.Count == 0)
         {
@@ -113,37 +119,56 @@ public sealed class GifRecorderService : IDisposable
     /// </summary>
     public void CancelRecording()
     {
-        _isRecording = false;
-        _captureTimer.Stop();
-        ClearFrames();
+        lock (_frames)
+        {
+            _isRecording = false;
+            _captureTimer.Stop();
+            ClearFrames();
+        }
     }
 
     private void CaptureTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
-        if (!_isRecording) return;
-
-        // Check max duration limit
-        if (RecordingDuration.TotalSeconds >= _maxDurationSeconds)
-        {
-            _isRecording = false;
-            _captureTimer.Stop();
-            MaxDurationReached?.Invoke();
-            return;
-        }
-
+        // Drop overlapping timer callbacks instead of queuing more screen copies.
+        if (!Monitor.TryEnter(_frames)) return;
+        bool limitReached = false;
+        TimeSpan? progress = null;
         try
         {
-            var frame = CaptureFrame();
-            if (frame != null)
+            if (!_isRecording || _limitReached) return;
+            if (RecordingDuration.TotalSeconds >= _maxDurationSeconds)
             {
-                ProcessFrame(frame);
-                RecordingProgress?.Invoke(RecordingDuration);
+                _captureTimer.Stop();
+                // StopRecordingAsync still owns the transition to the saving state.
+                limitReached = true;
+                _limitReached = true;
+            }
+            else
+            {
+                var frame = CaptureFrame();
+                if (frame != null)
+                {
+                    ProcessFrame(frame);
+                    progress = RecordingDuration;
+                    if (_memoryLimitReached)
+                    {
+                        _captureTimer.Stop();
+                        limitReached = _limitReached = true;
+                    }
+                }
             }
         }
         catch
         {
             // Skip frame on error
         }
+        finally
+        {
+            Monitor.Exit(_frames);
+        }
+        // Subscribers can dispatch to the UI and stop recording: never invoke under the lock.
+        if (limitReached) MaxDurationReached?.Invoke();
+        else if (progress is { } elapsed) RecordingProgress?.Invoke(elapsed);
     }
 
     private void ProcessFrame(Bitmap frame)
@@ -169,12 +194,20 @@ public sealed class GifRecorderService : IDisposable
                 }
             }
 
+            long frameBytes = ((long)frame.Width * 3 + 3) / 4 * 4 * frame.Height;
+            if (_frames.Count > 0 && _frameBytes + frameBytes > MaxFrameBytes)
+            {
+                frame.Dispose();
+                _memoryLimitReached = true;
+                return;
+            }
+            _frameBytes += frameBytes;
             // Store frame with duration
             _frames.Add((frame, _frameDelayMs));
 
             // Update previous frame reference
-            _previousFrame?.Dispose();
-            _previousFrame = (Bitmap)frame.Clone();
+            // Stored frames are immutable and owned by _frames; no full-size clone needed.
+            _previousFrame = frame;
         }
     }
 
@@ -239,10 +272,12 @@ public sealed class GifRecorderService : IDisposable
 
     private Bitmap? CaptureFrame()
     {
+        Bitmap? originalBitmap = null;
+        Bitmap? scaledBitmap = null;
         try
         {
             // Capture at original resolution
-            using var originalBitmap = new Bitmap(_captureRegion.Width, _captureRegion.Height, PixelFormat.Format24bppRgb);
+            originalBitmap = new Bitmap(_captureRegion.Width, _captureRegion.Height, PixelFormat.Format24bppRgb);
             using (var graphics = Graphics.FromImage(originalBitmap))
             {
                 graphics.CopyFromScreen(
@@ -253,17 +288,19 @@ public sealed class GifRecorderService : IDisposable
                     CopyPixelOperation.SourceCopy);
             }
 
-            // If no scaling needed, return clone
+            // Transfer ownership directly when no resize is needed.
             if (_resolutionScale >= 1.0)
             {
-                return (Bitmap)originalBitmap.Clone();
+                var result = originalBitmap;
+                originalBitmap = null;
+                return result;
             }
 
             // Scale down for smaller file size
-            int scaledWidth = (int)(_captureRegion.Width * _resolutionScale);
-            int scaledHeight = (int)(_captureRegion.Height * _resolutionScale);
+            int scaledWidth = Math.Max(1, (int)(_captureRegion.Width * _resolutionScale));
+            int scaledHeight = Math.Max(1, (int)(_captureRegion.Height * _resolutionScale));
 
-            var scaledBitmap = new Bitmap(scaledWidth, scaledHeight, PixelFormat.Format24bppRgb);
+            scaledBitmap = new Bitmap(scaledWidth, scaledHeight, PixelFormat.Format24bppRgb);
             using (var graphics = Graphics.FromImage(scaledBitmap))
             {
                 graphics.InterpolationMode = InterpolationMode.Bilinear;
@@ -272,11 +309,18 @@ public sealed class GifRecorderService : IDisposable
                 graphics.DrawImage(originalBitmap, 0, 0, scaledWidth, scaledHeight);
             }
 
-            return scaledBitmap;
+            var scaledResult = scaledBitmap;
+            scaledBitmap = null;
+            return scaledResult;
         }
         catch
         {
             return null;
+        }
+        finally
+        {
+            originalBitmap?.Dispose();
+            scaledBitmap?.Dispose();
         }
     }
 
@@ -295,6 +339,7 @@ public sealed class GifRecorderService : IDisposable
             {
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
+                    Title = _memoryLimitReached ? "메모리 한도 도달 — 녹화한 GIF 저장" : "녹화한 GIF 저장",
                     Filter = "GIF Image|*.gif",
                     DefaultExt = ".gif",
                     FileName = Path.GetFileName(savePath),
@@ -346,15 +391,14 @@ public sealed class GifRecorderService : IDisposable
                 frame.Dispose();
             }
             _frames.Clear();
+            _frameBytes = 0;
+            _previousFrame = null;
         }
-        _previousFrame?.Dispose();
-        _previousFrame = null;
     }
 
     public void Dispose()
     {
-        _captureTimer.Stop();
+        CancelRecording();
         _captureTimer.Dispose();
-        ClearFrames();
     }
 }
