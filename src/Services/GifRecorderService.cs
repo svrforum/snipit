@@ -358,6 +358,9 @@ public sealed class GifRecorderService : IDisposable
         catch { result.Dispose(); throw; }
     }
 
+#if WINUI
+    public Func<string?>? SavePathProvider { get; set; }
+#endif
     private string? SaveGif()
     {
         try
@@ -369,6 +372,9 @@ public sealed class GifRecorderService : IDisposable
 
             // Show save dialog on UI thread
             string? finalPath = null;
+#if WINUI
+            finalPath = SavePathProvider?.Invoke();
+#else
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 var dialog = new Microsoft.Win32.SaveFileDialog
@@ -386,6 +392,7 @@ public sealed class GifRecorderService : IDisposable
                 }
             });
 
+#endif
             if (string.IsNullOrEmpty(finalPath))
             {
                 ClearFrames();

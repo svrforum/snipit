@@ -649,6 +649,11 @@ public partial class EditorWindow : Window
             }
             else if (_currentShape != null && _currentTool != "Select")
             {
+                if (_currentTool == "Highlight" && _currentShape is Polyline marker)
+                {
+                    var aligned = SnipIt.Utils.HighlighterStroke.Align(marker.Points.Select(p => new System.Drawing.PointF((float)p.X, (float)p.Y)).ToArray(), Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift));
+                    marker.Points = new PointCollection(aligned.Select(p => new Point(p.X,p.Y)));
+                }
                 // Save state and merge drawing to bitmap for undo/redo support
                 SaveAndMergeDrawing();
             }
@@ -704,7 +709,8 @@ public partial class EditorWindow : Window
             },
             "Highlight" => new Polyline
             {
-                Stroke = new SolidColorBrush(_highlightColor),
+                Stroke = new SolidColorBrush(Color.FromRgb(_highlightColor.R, _highlightColor.G, _highlightColor.B)),
+                Opacity = _highlightColor.A / 255.0,
                 StrokeThickness = 20, // Fixed thick stroke for highlighter
                 StrokeLineJoin = PenLineJoin.Round,
                 StrokeStartLineCap = PenLineCap.Square,

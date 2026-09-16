@@ -14,21 +14,26 @@ internal sealed class GitHubUpdateClient(HttpClient http)
 {
     internal const string LatestUrl = "https://api.github.com/repos/svrforum/snipit/releases/latest";
     private const long MaxDownloadBytes = 300L * 1024 * 1024;
+#if WINUI
+    internal const string ExecutableAsset = "SnipIt-WinUI.exe";
+#else
+    internal const string ExecutableAsset = "SnipIt.exe";
+#endif
 
     internal static Version? ParseVersion(string tag) =>
         Version.TryParse(tag.TrimStart('v', 'V'), out var version) && version.Build >= 0
             ? new Version(version.Major, version.Minor, version.Build, Math.Max(version.Revision, 0)) : null;
 
-    internal static UpdateRelease? ParseRelease(string json, Version current)
+    internal static UpdateRelease? ParseRelease(string json, Version current, bool allowSameVersion = false)
     {
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
         if (root.GetProperty("draft").GetBoolean() || root.GetProperty("prerelease").GetBoolean()) return null;
         var tag = root.GetProperty("tag_name").GetString() ?? "";
         var version = ParseVersion(tag);
-        if (version == null || version <= current) return null;
+        if (version == null || version < current || (version == current && !allowSameVersion)) return null;
         var assets = root.GetProperty("assets").EnumerateArray().ToArray();
-        var exe = assets.SingleOrDefault(a => a.GetProperty("name").GetString() == "SnipIt.exe");
+        var exe = assets.SingleOrDefault(a => a.GetProperty("name").GetString() == ExecutableAsset);
         var sums = assets.SingleOrDefault(a => a.GetProperty("name").GetString() == "SHA256SUMS.txt");
         if (exe.ValueKind == JsonValueKind.Undefined || sums.ValueKind == JsonValueKind.Undefined)
             throw new InvalidDataException("릴리즈에 실행 파일 또는 체크섬 파일이 없습니다.");
@@ -57,7 +62,7 @@ internal sealed class GitHubUpdateClient(HttpClient http)
         return request;
     }
 
-    internal async Task<UpdateRelease?> CheckAsync(Version current, CancellationToken token)
+    internal async Task<UpdateRelease?> CheckAsync(Version current, CancellationToken token, bool allowSameVersion = false)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(20));
@@ -65,7 +70,7 @@ internal sealed class GitHubUpdateClient(HttpClient http)
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
-        return ParseRelease(await ReadLimitedText(response, 1024 * 1024, timeout.Token).ConfigureAwait(false), current);
+        return ParseRelease(await ReadLimitedText(response, 1024 * 1024, timeout.Token).ConfigureAwait(false), current, allowSameVersion);
     }
 
     private static async Task<string> ReadLimitedText(HttpResponseMessage response, int limit, CancellationToken token)
@@ -86,7 +91,7 @@ internal sealed class GitHubUpdateClient(HttpClient http)
     {
         var candidates = text.Split('\n').Select(line => line.Trim().TrimStart('\uFEFF'))
             .Select(line => line.Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries))
-            .Where(parts => parts.Length == 2 && parts[1].TrimStart('*') == "SnipIt.exe").ToArray();
+            .Where(parts => parts.Length == 2 && parts[1].TrimStart('*') == ExecutableAsset).ToArray();
         if (candidates.Length != 1 || candidates[0][0].Length != 64 || !candidates[0][0].All(Uri.IsHexDigit))
             throw new InvalidDataException("실행 파일 체크섬이 없거나 올바르지 않습니다.");
         return candidates[0][0].ToLowerInvariant();

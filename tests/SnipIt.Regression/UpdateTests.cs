@@ -23,6 +23,7 @@ internal static class UpdateTests
         {
             tag_name = tag, draft = false, prerelease, body = "Release notes",
             assets = new[] {
+                new { name = "SnipIt-WinUI.exe", browser_download_url = $"https://{host}/svrforum/snipit/releases/download/{tag}/SnipIt-WinUI.exe", size = bytes.Length, digest = "sha256:" + Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() },
                 new { name = "SnipIt.exe", browser_download_url = $"https://{host}/svrforum/snipit/releases/download/{tag}/SnipIt.exe", size = bytes.Length, digest = "sha256:" + Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() },
                 new { name = sums ? "SHA256SUMS.txt" : "other.txt", browser_download_url = $"https://{host}/svrforum/snipit/releases/download/{tag}/SHA256SUMS.txt", size = 78, digest = "" }
             }
@@ -46,6 +47,9 @@ internal static class UpdateTests
         Check(GitHubUpdateClient.ParseRelease(json, release.Version) == null, "Current release is not offered again");
         Check(GitHubUpdateClient.ParseRelease(json, new Version(3, 0, 0, 0)) == null, "Updates never downgrade");
         Check(GitHubUpdateClient.ParseRelease(Metadata(bytes, prerelease: true), new Version(0, 0)) == null, "Prereleases are ignored");
+        Check(GitHubUpdateClient.ParseRelease(json,release.Version,allowSameVersion:true)!=null,"Release candidate can upgrade to the matching stable version");
+        Check(GitHubUpdateClient.ParseRelease(json,new Version(3,0,0,0),allowSameVersion:true)==null,"Release candidate upgrade never permits a downgrade");
+        Check(GitHubUpdateClient.ParseRelease(Metadata(bytes,prerelease:true),release.Version,allowSameVersion:true)==null,"Same-version upgrade still rejects prerelease feeds");
         Check(GitHubUpdateClient.ParseVersion("v2.6.0-beta") == null, "Unstable version tags are ignored");
         await Reject<InvalidDataException>(() => Task.FromResult(GitHubUpdateClient.ParseRelease(Metadata(bytes, host: "example.com"), new Version(0, 0))), "Foreign download hosts are rejected");
         await Reject<InvalidDataException>(() => Task.FromResult(GitHubUpdateClient.ParseRelease(Metadata(bytes, sums: false), new Version(0, 0))), "Missing checksum assets are rejected");

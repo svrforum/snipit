@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup>
+<OutputType>WinExe</OutputType><TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+<UseWinUI>true</UseWinUI><ImplicitUsings>disable</ImplicitUsings><Nullable>enable</Nullable>
+<WindowsPackageType>None</WindowsPackageType><WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained><SelfContained>true</SelfContained><RuntimeIdentifier>win-x64</RuntimeIdentifier><PlatformTarget>x64</PlatformTarget><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+<DefineConstants>$(DefineConstants);WINUI;DISABLE_XAML_GENERATED_MAIN</DefineConstants><ApplicationManifest>../src/app.manifest</ApplicationManifest>
+<AssemblyName>SnipIt</AssemblyName><Version>2.7.0</Version><ApplicationIcon>../src/Assets/icon.ico</ApplicationIcon>
+</PropertyGroup>
+<PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+<EnableMsixTooling>true</EnableMsixTooling><IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+<DefineConstants>$(DefineConstants);SNIPIT_SINGLEFILE</DefineConstants>
+</PropertyGroup>
+<PropertyGroup Condition="'$(EnableSmokeTests)' == 'true'"><DefineConstants>$(DefineConstants);SNIPIT_SMOKE_TESTS</DefineConstants></PropertyGroup>
+<ItemGroup><FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms"/><PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260804001"/><PackageReference Include="AnimatedGif" Version="1.0.5"/></ItemGroup>
+<ItemGroup>
+<Compile Include="../src/Models/HotkeyConfig.cs" Link="Shared/HotkeyConfig.cs"/>
+<Compile Include="../src/Services/ScreenCaptureService.cs" Link="Shared/ScreenCaptureService.cs"/>
+<Compile Include="../src/Services/GifRecorderService.cs" Link="Shared/GifRecorderService.cs"/>
+<Compile Include="../src/Services/LocalizationService.cs" Link="Shared/LocalizationService.cs"/>
+<Compile Include="../src/Services/OcrService.cs" Link="Shared/OcrService.cs"/>
+<Compile Include="../src/Services/GitHubUpdateClient.cs" Link="Shared/GitHubUpdateClient.cs"/>
+<Compile Include="../src/Services/UpdateInstaller.cs" Link="Shared/UpdateInstaller.cs"/>
+<Compile Include="../src/Utils/*.cs" Link="Shared/%(Filename)%(Extension)"/>
+<Content Include="../src/Assets/*" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
+</ItemGroup></Project>
+

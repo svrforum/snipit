@@ -89,6 +89,26 @@ public static class OcrService
 
     private static async Task<OcrResultWithRegions> ExtractWithRegionsAsync(Bitmap bitmap, OcrEngine ocrEngine)
     {
+        var limit = (int)OcrEngine.MaxImageDimension;
+        if (bitmap.Width > limit || bitmap.Height > limit)
+        {
+            double ratio = Math.Min((double)limit / bitmap.Width, (double)limit / bitmap.Height);
+            using var resized = new Bitmap(Math.Max(1, (int)(bitmap.Width * ratio)), Math.Max(1, (int)(bitmap.Height * ratio)));
+            using (var graphics = Graphics.FromImage(resized))
+            {
+                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                graphics.DrawImage(bitmap, new Rectangle(0, 0, resized.Width, resized.Height));
+            }
+            var scaled = await ExtractWithRegionsAsync(resized, ocrEngine);
+            double sx = (double)bitmap.Width / resized.Width, sy = (double)bitmap.Height / resized.Height;
+            WinRect Restore(WinRect rect) => new(rect.X * sx, rect.Y * sy, rect.Width * sx, rect.Height * sy);
+            foreach (var line in scaled.Lines)
+            {
+                line.BoundingRect = Restore(line.BoundingRect);
+                foreach (var word in line.Words) word.BoundingRect = Restore(word.BoundingRect);
+            }
+            return scaled;
+        }
         // Convert System.Drawing.Bitmap to Windows.Graphics.Imaging.SoftwareBitmap
         using var softwareBitmap = await ConvertToSoftwareBitmapAsync(bitmap);
 

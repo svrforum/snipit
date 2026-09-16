@@ -1,3 +1,8 @@
+#if WINUI
+using EditorKey = System.Windows.Forms.Keys;
+#else
+using EditorKey = System.Windows.Input.Key;
+#endif
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -72,37 +77,37 @@ public enum EditorInitialZoom
 /// </summary>
 public sealed class EditorToolShortcuts
 {
-    public System.Windows.Input.Key Select { get; set; } = System.Windows.Input.Key.V;
-    public System.Windows.Input.Key Pen { get; set; } = System.Windows.Input.Key.P;
-    public System.Windows.Input.Key Arrow { get; set; } = System.Windows.Input.Key.A;
-    public System.Windows.Input.Key Line { get; set; } = System.Windows.Input.Key.L;
-    public System.Windows.Input.Key Rectangle { get; set; } = System.Windows.Input.Key.R;
-    public System.Windows.Input.Key Ellipse { get; set; } = System.Windows.Input.Key.E;
-    public System.Windows.Input.Key Text { get; set; } = System.Windows.Input.Key.T;
-    public System.Windows.Input.Key Highlight { get; set; } = System.Windows.Input.Key.H;
-    public System.Windows.Input.Key Blur { get; set; } = System.Windows.Input.Key.M;
-    public System.Windows.Input.Key Crop { get; set; } = System.Windows.Input.Key.C;
+    public EditorKey Select { get; set; } = EditorKey.V;
+    public EditorKey Pen { get; set; } = EditorKey.P;
+    public EditorKey Arrow { get; set; } = EditorKey.A;
+    public EditorKey Line { get; set; } = EditorKey.L;
+    public EditorKey Rectangle { get; set; } = EditorKey.R;
+    public EditorKey Ellipse { get; set; } = EditorKey.E;
+    public EditorKey Text { get; set; } = EditorKey.T;
+    public EditorKey Highlight { get; set; } = EditorKey.H;
+    public EditorKey Blur { get; set; } = EditorKey.M;
+    public EditorKey Crop { get; set; } = EditorKey.C;
 
     public void ResetToDefaults()
     {
-        Select = System.Windows.Input.Key.V;
-        Pen = System.Windows.Input.Key.P;
-        Arrow = System.Windows.Input.Key.A;
-        Line = System.Windows.Input.Key.L;
-        Rectangle = System.Windows.Input.Key.R;
-        Ellipse = System.Windows.Input.Key.E;
-        Text = System.Windows.Input.Key.T;
-        Highlight = System.Windows.Input.Key.H;
-        Blur = System.Windows.Input.Key.M;
-        Crop = System.Windows.Input.Key.C;
+        Select = EditorKey.V;
+        Pen = EditorKey.P;
+        Arrow = EditorKey.A;
+        Line = EditorKey.L;
+        Rectangle = EditorKey.R;
+        Ellipse = EditorKey.E;
+        Text = EditorKey.T;
+        Highlight = EditorKey.H;
+        Blur = EditorKey.M;
+        Crop = EditorKey.C;
     }
 
-    public static string GetKeyDisplayName(System.Windows.Input.Key key) => key switch
+    public static string GetKeyDisplayName(EditorKey key) => key switch
     {
-        System.Windows.Input.Key.None => "",
-        >= System.Windows.Input.Key.A and <= System.Windows.Input.Key.Z => key.ToString(),
-        >= System.Windows.Input.Key.D0 and <= System.Windows.Input.Key.D9 =>
-            ((int)key - (int)System.Windows.Input.Key.D0).ToString(),
+        EditorKey.None => "",
+        >= EditorKey.A and <= EditorKey.Z => key.ToString(),
+        >= EditorKey.D0 and <= EditorKey.D9 =>
+            ((int)key - (int)EditorKey.D0).ToString(),
         _ => key.ToString()
     };
 }
@@ -338,6 +343,22 @@ public sealed class AppSettingsConfig
         catch
         {
             // Ignore save errors
+        }
+    }
+
+    public async Task SaveCheckedAsync(CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+        var temporary = ConfigPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(this, JsonOptions), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporary, ConfigPath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
         }
     }
 

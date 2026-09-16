@@ -201,3 +201,29 @@ GitHub `svrforum/snipit`의 정식 릴리즈에 `SnipIt.exe`와 `SHA256SUMS.txt`
 `SnipIt.exe.previous-<고유값>`으로 보존합니다. 교체/재실행 실패 시 이전 파일로 복구를 시도합니다.
 복구 파일을 직접 사용할 때는 실행 파일이 종료된 상태에서 `.exe` 파일명으로 복원하세요.
 다운로드 캐시는 재시작 후 재사용하고, 7일이 지난 업데이트 캐시는 자동 정리합니다.
+
+## 두 가지 버전과 다운로드
+
+| 항목 | 기존 WPF | WinUI |
+|---|---|---|
+| 다운로드 | [SnipIt.exe](https://github.com/svrforum/snipit/releases/latest/download/SnipIt.exe) | [SnipIt-WinUI.exe](https://github.com/svrforum/snipit/releases/latest/download/SnipIt-WinUI.exe) |
+| 선택 기준 | 기존 기능과 사용 흐름을 선호할 때 | 새 UI와 편집 흐름을 사용하고 싶을 때 |
+| 화면 | 기존 WPF 화면 | 컴팩트 WinUI 메인, 도구별 커서 |
+| 편집 이력 | 기존 WPF 동작 유지 | 편집·실행 취소 결과를 같은 이력 항목에 자동 반영 |
+| 종료 | 기존 종료 흐름 | 트레이 종료 시 편집본 이력 저장 후 편집기 함께 종료 |
+| 형광펜 | 자유 곡선 + 수평 보정, Shift 고정 | 자유 곡선 + 수평 보정, Shift 고정 |
+| 업데이트 | WPF 실행 파일만 선택 | WinUI 실행 파일만 선택 |
+| 검증 범위 | 기존 회귀 검사 | 코어/통합 검사, 혼합 DPI 실기기·장시간 성능 비교는 추가 검증 중 |
+
+두 파일은 x64 포터블이며 .NET을 별도로 설치하지 않아도 됩니다. 기본 설정/이력 저장 위치를 공유하므로 동시 실행보다는 한 버전씩 사용하세요. UI 프레임워크만으로 CPU/메모리가 항상 개선되는 것은 아닙니다.
+
+**이전 WinUI 프리뷰 사용자는 이번 WinUI 실행 파일을 직접 다운로드해 교체하세요.** 구형 프리뷰의 업데이트 로직은 기존 WPF 자산을 선택할 수 있습니다. 새 버전부터는 WPF와 WinUI 업데이트 파일 및 WinUI 업데이트 캐시를 구분합니다. 자동 확인/다운로드는 설정을 따르며 설치는 앱의 업데이트 후 재시작으로 진행합니다.
+
+## 자동 빌드와 배포
+
+- main 푸시/PR: 편집 코어와 WPF 회귀 검사 → 두 버전 빌드 → Actions 아티팩트 생성.
+- 릴리즈: 두 csproj의 Version을 동일하게 올리고 `docs/releases/vX.Y.Z.md`를 작성한 뒤 해당 커밋에 `vX.Y.Z` 태그를 푸시합니다.
+- 태그 빌드 성공 시 GitHub Release에 두 EXE와 `SHA256SUMS.txt`를 함께 올리고 공개합니다. 실패하면 공개 단계를 진행하지 않습니다.
+- 로컬 빌드: `./build-dual.ps1 -Output ./dist-dual`.
+
+상세 검증 범위는 [WinUI 전환 기록](docs/winui-migration-status.md)을 참고하세요.

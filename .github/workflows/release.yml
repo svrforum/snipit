@@ -1,0 +1,67 @@
+name: Build and release both editions
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/*:Zone.Identifier
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Verify release tag matches both project versions
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a stable vMAJOR.MINOR.PATCH tag.' }
+          foreach ($project in @('src/WinCapture.csproj','src.WinUI/SnipIt.WinUI.csproj')) {
+            [xml]$xml = Get-Content $project
+            if (@($xml.Project.PropertyGroup.Version) -notcontains $version) { throw "Version mismatch: $project" }
+          }
+      - name: Editor core regression
+        run: dotnet run --project tests/SnipIt.WinUI.CoreTests -c Release
+      - name: WPF and updater regression
+        run: dotnet run --project tests/SnipIt.Regression -c Release
+      - name: Build WPF and WinUI with checksums
+        shell: pwsh
+        run: ./build-dual.ps1 -Output "$env:RUNNER_TEMP/release"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SnipIt-WPF-and-WinUI
+          path: |
+            ${{ runner.temp }}/release/SnipIt.exe
+            ${{ runner.temp }}/release/SnipIt-WinUI.exe
+            ${{ runner.temp }}/release/SHA256SUMS.txt
+            ${{ runner.temp }}/release/EDITIONS.txt
+      - name: Publish both editions together
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $notes = "docs/releases/$tag.md"
+          if (!(Test-Path $notes)) { throw "Release notes missing: $notes" }
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --verify-tag --draft --title "SnipIt $tag — WPF + WinUI" --notes-file $notes
+            if ($LASTEXITCODE -ne 0) { throw 'Draft creation failed' }
+          }
+          gh release upload $tag "$env:RUNNER_TEMP/release/SnipIt.exe" "$env:RUNNER_TEMP/release/SnipIt-WinUI.exe" "$env:RUNNER_TEMP/release/SHA256SUMS.txt" "$env:RUNNER_TEMP/release/EDITIONS.txt" --clobber --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed' }
+          gh release edit $tag --draft=false --latest --notes-file $notes --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

@@ -125,4 +125,12 @@ public class LocalizationService
     }
 
     public string this[string key] => Get(key);
+#if WINUI
+    public string TranslateKorean(string text)
+    {
+        if (CurrentLanguage == Language.Korean) return text;
+        var entry = _strings.Values.FirstOrDefault(value => value.GetValueOrDefault(Language.Korean) == text);
+        return entry?.GetValueOrDefault(CurrentLanguage) ?? text;
+    }
+#endif
 }

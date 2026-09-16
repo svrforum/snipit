@@ -353,6 +353,7 @@ public static partial class NativeMethods
 /// <summary>
 /// Windows 11 specific helper methods
 /// </summary>
+#if !WINUI
 public static class Windows11Helper
 {
     /// <summary>
@@ -437,3 +438,5 @@ public static class Windows11Helper
         return dpi / 96.0;
     }
 }
+
+#endif

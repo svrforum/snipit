@@ -58,3 +58,4 @@ artifacts/
 
 # JetBrains
 *.DotSettings.user
+/dist-dual/

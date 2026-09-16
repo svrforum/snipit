@@ -9,10 +9,15 @@ internal static class UpdateInstaller
     {
         // The distributed app is self-contained and single-file. A framework-dependent
         // development app cannot be copied and run as a standalone update helper.
+#if WINUI && SNIPIT_SINGLEFILE
+        // WinUI bundles extract managed assemblies as well; Assembly.Location is
+        // nonempty in this deployment. Only the single-file publish defines this.
+#else
 #pragma warning disable IL3000
         if (!string.IsNullOrEmpty(typeof(App).Assembly.Location))
 #pragma warning restore IL3000
             throw new InvalidOperationException("자동 설치는 배포용 단일 EXE에서 지원됩니다. 개발 빌드에서는 다운로드까지만 사용할 수 있습니다.");
+#endif
         string target = Environment.ProcessPath ?? throw new InvalidOperationException("실행 파일 경로를 확인할 수 없습니다.");
         string directory = Path.GetDirectoryName(target)!;
         // Fail while the application is still running if the installation folder is read-only.
