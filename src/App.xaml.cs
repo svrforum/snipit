@@ -254,47 +254,57 @@ public partial class App : System.Windows.Application
 
     private static async Task OpenEditorAsync(System.Drawing.Bitmap bitmap)
     {
-        // Keep a separate image alive while the editor is free to replace or close its image.
+        // The editor can replace or dispose its image independently of the history save.
         using var historyBitmap = (System.Drawing.Bitmap)bitmap.Clone();
-        var historySave = SaveCaptureHistoryAsync(historyBitmap);
         try
         {
-        // Check if silent mode is enabled
-        var config = AppSettingsConfig.Instance;
-        if (config.SilentMode)
-        {
-            // Store the bitmap for later editing
-            _lastSilentCapture?.Dispose();
-            _lastSilentCapture = (System.Drawing.Bitmap)bitmap.Clone();
+            var config = AppSettingsConfig.Instance;
+            if (config.SilentMode)
+            {
+                _lastSilentCapture?.Dispose();
+                _lastSilentCapture = (System.Drawing.Bitmap)bitmap.Clone();
 
-            // Just copy to clipboard and show notification with click handler
-            CopyBitmapToClipboard(bitmap);
-            TrayIconService.Instance.ShowNotificationWithAction(
-                "캡처 완료",
-                "E: 편집 | S: 저장 | 클릭: 편집",
-                3000,
-                OpenLastSilentCapture,
-                SaveLastSilentCapture);
-            bitmap.Dispose();
-            return;
-        }
+                CopyBitmapToClipboard(bitmap);
+                TrayIconService.Instance.ShowNotificationWithAction(
+                    "캡처 완료",
+                    "E: 편집 | S: 저장 | 클릭: 편집",
+                    3000,
+                    OpenLastSilentCapture,
+                    SaveLastSilentCapture);
+                bitmap.Dispose();
+                return;
+            }
 
-        // Close existing editor window
-        if (_currentEditor != null)
-        {
-            _currentEditor.Close();
-            _currentEditor = null;
-        }
+            _currentEditor?.Close();
 
-        // Open new editor
-        _currentEditor = new Views.EditorWindow(bitmap);
-        _currentEditor.Closed += (s, e) => _currentEditor = null;
-        _currentEditor.Show();
+            var editor = new Views.EditorWindow(bitmap);
+            _currentEditor = editor;
+            var loadedOrClosed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            editor.Closed += (_, _) =>
+            {
+                _currentEditor = null;
+                loadedOrClosed.TrySetResult();
+            };
+
+            // EditorWindow registers its image-loading handler in its constructor.
+            // Wait for it to finish GetHbitmap before history calls GDI+ DrawImage.
+            editor.Loaded += OnEditorLoaded;
+            try
+            {
+                editor.Show();
+                await loadedOrClosed.Task;
+            }
+            finally
+            {
+                editor.Loaded -= OnEditorLoaded;
+            }
+
+            void OnEditorLoaded(object sender, System.Windows.RoutedEventArgs args) =>
+                loadedOrClosed.TrySetResult();
         }
         finally
         {
-            // Do not release the background save's bitmap if showing the editor fails.
-            await historySave;
+            await SaveCaptureHistoryAsync(historyBitmap);
         }
     }
 
