@@ -8,7 +8,7 @@ foreach ($edition in @("WPF", "WinUI")) {
     & $Dotnet publish (Join-Path $PSScriptRoot $project) -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableSmokeTests=false -o $folder
     if ($LASTEXITCODE -ne 0) { throw "$edition publish failed" }
     $asset = if ($edition -eq "WPF") { "SnipIt.exe" } else { "SnipIt-WinUI.exe" }
-    Copy-Item -LiteralPath (Join-Path $folder "SnipIt.exe") -Destination (Join-Path $Output $asset) -Force
+    Copy-Item -LiteralPath (Join-Path $folder $asset) -Destination (Join-Path $Output $asset) -Force
 }
 $checksums = foreach ($asset in @("SnipIt.exe", "SnipIt-WinUI.exe")) {
     $hash = (Get-FileHash -LiteralPath (Join-Path $Output $asset) -Algorithm SHA256).Hash.ToLowerInvariant()
